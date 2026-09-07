@@ -42,9 +42,36 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 {
   "Next.js": "16+",
   "Prisma": "v8",
+  "Biome": "latest",
   "Node.js": "20+",
   "Package Manager": "npm/yarn/pnpm/bun"
 }
+```
+
+## 🛠️ Biome - Linting y Formateo
+
+Este proyecto utiliza **[Biome](https://biomejs.dev)** para linting, formateo y organización de imports de forma rápida y eficiente.
+
+### Comandos Disponibles
+
+```bash
+# Formatear todos los archivos
+pnpx @biomejs/biome format --write
+
+# Formatear archivos específicos
+pnpx @biomejs/biome format --write <files>
+
+# Lint y aplicar correcciones seguras a todos los archivos
+pnpx @biomejs/biome lint --write
+
+# Lint y aplicar correcciones seguras a archivos específicos
+pnpx @biomejs/biome lint --write <files>
+
+# Formatear, lint y organizar imports de todos los archivos
+pnpx @biomejs/biome check --write
+
+# Formatear, lint y organizar imports de archivos específicos
+pnpx @biomejs/biome check --write <files>
 ```
 
 ## Learn More
