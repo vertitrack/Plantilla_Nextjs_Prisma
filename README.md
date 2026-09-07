@@ -1,4 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plantilla Next.js + Prisma Gratuita
+
+Una plantilla completa y moderna de [Next.js](https://nextjs.org) con [Prisma](https://www.prisma.io) pre-configurado, lista para que construyas tus proyectos.
+
+**¡Esta plantilla es 100% gratuita para los miembros de nuestra comunidad!**
+
+## 🤝 Únete a la Comunidad
+
+Accede a esta plantilla y mucho más contenido gratuito:
+
+- **Discord**: [Únete a nuestro servidor](https://discord.com) - Recibe soporte directo y acceso a recursos exclusivos
+- **Web**: [www.kadev.cl](https://www.kadev.cl) - Explora más proyectos y documentación
 
 ## Getting Started
 
@@ -18,7 +29,23 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Características
+
+- ⚡ **Next.js 16.3.4+** - Framework React moderno y rápido
+- 🗄️ **Prisma ORM** - Manejo de base de datos simplificado
+- 🎨 **Optimización de fuentes** - Usando [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) con [Geist](https://vercel.com/font)
+- 📱 **Totalmente responsive** - Listo para cualquier dispositivo
+
+## 📦 Stack Incluido
+
+```json
+{
+  "Next.js": "16+",
+  "Prisma": "v8",
+  "Node.js": "20+",
+  "Package Manager": "npm/yarn/pnpm/bun"
+}
+```
 
 ## Learn More
 
@@ -34,3 +61,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## 📝 Licencia
+
+Esta plantilla es **completamente gratuita** para los miembros de la comunidad de [kadev.cl](https://www.kadev.cl). Puedes usarla, modificarla y compartirla libremente.
+
+---
+
+**¿Preguntas o necesitas ayuda?** Únete a nuestro [Discord](https://discord.com) o visita [www.kadev.cl](https://www.kadev.cl)
