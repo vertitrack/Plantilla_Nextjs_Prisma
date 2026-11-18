@@ -17,8 +17,8 @@ function getClient() {
 	}
 	client ??= new GoogleGenAI({
 		apiKey: process.env.GEMINI_API_KEY,
-		// Evita que una petición quede colgada indefinidamente (2 min).
-		httpOptions: { timeout: 120_000 },
+		// Evita que una petición quede colgada indefinidamente (60 s).
+		httpOptions: { timeout: 60_000 },
 	});
 	return client;
 }
@@ -28,22 +28,39 @@ function isUnavailable(err: unknown) {
 	const message = e?.message ?? "";
 	return (
 		e?.status === 503 ||
+		e?.status === 504 ||
+		message.includes("DEADLINE_EXCEEDED") ||
 		message.includes("503") ||
 		message.includes("UNAVAILABLE") ||
-		message.includes("high demand")
+		message.includes("high demand") ||
+		// Un modelo saturado a veces no responde: tratamos el timeout igual.
+		/timed? ?out|aborted|AbortError/i.test(message)
 	);
 }
 
+// Si el modelo principal está saturado, lo evitamos por un rato y usamos el de
+// respaldo directamente (cada 503 tarda ~20 s en llegar).
+const COOLDOWN_MS = 5 * 60 * 1000;
+let primaryUnavailableUntil = 0;
+
 /**
  * Llama a Gemini reintentando cuando el modelo responde 503 (sobrecarga). Si
- * sigue saturado, prueba una vez con el modelo de respaldo.
+ * sigue saturado, usa el modelo de respaldo.
  */
 export async function generateContentWithRetry(
 	params: Omit<GenerateContentParameters, "model"> & { model?: string },
-	maxRetries = 1,
+	maxRetries = 0,
 ) {
 	const ai = getClient();
-	const model = params.model ?? GEMINI_MODEL;
+	const fallback =
+		GEMINI_FALLBACK_MODEL &&
+		GEMINI_FALLBACK_MODEL !== (params.model ?? GEMINI_MODEL)
+			? GEMINI_FALLBACK_MODEL
+			: null;
+	const useFallbackNow =
+		!params.model && fallback && Date.now() < primaryUnavailableUntil;
+	const model = useFallbackNow ? fallback : (params.model ?? GEMINI_MODEL);
+
 	for (let attempt = 0; ; attempt++) {
 		try {
 			return await ai.models.generateContent({ ...params, model });
@@ -54,12 +71,10 @@ export async function generateContentWithRetry(
 				await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
 				continue;
 			}
-			if (GEMINI_FALLBACK_MODEL && GEMINI_FALLBACK_MODEL !== model) {
-				console.warn(`Gemini 503 (${model}), usando ${GEMINI_FALLBACK_MODEL}`);
-				return ai.models.generateContent({
-					...params,
-					model: GEMINI_FALLBACK_MODEL,
-				});
+			if (fallback && model !== fallback) {
+				primaryUnavailableUntil = Date.now() + COOLDOWN_MS;
+				console.warn(`Gemini 503 (${model}), usando ${fallback} por 5 min`);
+				return ai.models.generateContent({ ...params, model: fallback });
 			}
 			throw err;
 		}

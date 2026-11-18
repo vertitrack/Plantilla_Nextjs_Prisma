@@ -25,7 +25,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 /** Subir CV → análisis con IA → revisar → guardar como perfil maestro. */
-export function CvUpload({ hasProfile }: { hasProfile: boolean }) {
+export function CvUpload({
+	hasProfile,
+	onSaved,
+}: {
+	hasProfile: boolean;
+	/** Se llama después de guardar el perfil (p. ej. para recargar el estado). */
+	onSaved?: () => void;
+}) {
 	const [state, action, analyzing] = useActionState<AnalyzeCvState, FormData>(
 		analyzeCvAction,
 		null,
@@ -49,6 +56,7 @@ export function CvUpload({ hasProfile }: { hasProfile: boolean }) {
 				await saveCvProfileAction(result.profile, result.analysis);
 				toast.success("Perfil guardado. Esta es ahora la base de la IA.");
 				setResult(null);
+				onSaved?.();
 			} catch {
 				toast.error("No se pudo guardar el perfil.");
 			}

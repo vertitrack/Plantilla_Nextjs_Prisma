@@ -6,15 +6,26 @@ import type { ScrapedJob } from "@/lib/types";
 
 export const POST = withAuth(async (request: Request) => {
 	try {
-		const { url: rawUrl } = await readJson(request);
-		const url = parsePublicUrl(rawUrl);
-		const fullText = await fetchJobText(url);
+		const { url: rawUrl, text } = await readJson(request);
+		// Modo "pegar texto": se omite la descarga y solo se extraen los datos.
+		const pasted = typeof text === "string" ? text.trim() : "";
+		if (!rawUrl && pasted.length < 80) {
+			return NextResponse.json(
+				{
+					error: "Pega la descripción completa de la vacante.",
+					canFallback: false,
+				},
+				{ status: 400 },
+			);
+		}
+		const url = rawUrl ? parsePublicUrl(rawUrl) : null;
+		const fullText = url ? await fetchJobText(url) : pasted.slice(0, 15000);
 
 		let job: ScrapedJob;
 		try {
 			const parsed = await extractJobPosting(fullText);
 			job = {
-				url: url.href,
+				url: url?.href ?? "",
 				title: parsed.title || "Oferta de Empleo",
 				company: parsed.company || "Empresa",
 				location: parsed.location || "No especificada",
@@ -27,7 +38,7 @@ export const POST = withAuth(async (request: Request) => {
 			// Si la IA falla igual devolvemos el texto para que el usuario continúe.
 			console.warn("extractJobPosting falló:", error);
 			job = {
-				url: url.href,
+				url: url?.href ?? "",
 				title: "Oferta de Empleo Detectada",
 				company: "Empresa",
 				location: "No especificada",

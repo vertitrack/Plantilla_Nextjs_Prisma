@@ -2,47 +2,54 @@
 
 import {
 	createContext,
-	type Dispatch,
 	type ReactNode,
-	type SetStateAction,
 	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import { toast } from "sonner";
 import {
-	type AppView,
+	type CvAnalysis,
 	emptyProfile,
 	type JobApplication,
 	type JobStatus,
 	type MasterProfile,
 } from "@/lib/types";
 
-// Estado de cliente de JustWork: perfil, postulaciones y navegación.
-// Las mutaciones son optimistas: se actualiza la UI y luego se persiste vía /api.
+// Estado de cliente de JustWork: tu perfil maestro y tus postulaciones.
+// PostgreSQL es la fuente de verdad; localStorage es una caché para cargar al
+// instante y no perder cambios si la red falla. Las mutaciones son optimistas.
 
-type ToastType = "success" | "error" | "info";
+/** Perfil tal como lo devuelve la API (incluye el último análisis del CV). */
+export type Profile = MasterProfile & {
+	cvAnalysis?: CvAnalysis;
+	cvAnalyzedAt?: string;
+};
 
 interface AppContextType {
-	profile: MasterProfile;
-	setProfile: Dispatch<SetStateAction<MasterProfile>>;
-	updateProfile: (updated: Partial<MasterProfile>) => Promise<void>;
+	profile: Profile;
+	hasProfile: boolean;
+	/** Guarda cambios del perfil. `silent` evita el toast (autoguardado). */
+	updateProfile: (
+		updated: Partial<MasterProfile>,
+		opts?: { silent?: boolean },
+	) => Promise<void>;
 	applications: JobApplication[];
-	addApplication: (job: JobApplication) => Promise<void>;
+	/** Crea una postulación y devuelve la versión guardada (con su id real). */
+	addApplication: (
+		job: Omit<JobApplication, "id">,
+	) => Promise<JobApplication | null>;
 	updateApplication: (
 		id: string,
 		updated: Partial<JobApplication>,
 	) => Promise<void>;
 	deleteApplication: (id: string) => Promise<void>;
 	updateStatus: (id: string, status: JobStatus) => Promise<void>;
-	activeView: AppView;
-	setActiveView: (view: AppView) => void;
-	selectedJobId: string | null;
-	setSelectedJobId: (id: string | null) => void;
-	viewJobDetail: (id: string) => void;
-	showToast: (message: string, type?: ToastType) => void;
+	/** Vuelve a leer todo desde la base (p. ej. tras importar el CV). */
+	reload: () => Promise<void>;
 	isLoadingDb: boolean;
 }
 
@@ -68,109 +75,110 @@ function writeCache(key: string, value: unknown) {
 	}
 }
 
-function showToast(message: string, type: ToastType = "success") {
-	toast[type](message);
-}
-
-async function api<T>(url: string, init?: RequestInit): Promise<T> {
+export async function api<T>(url: string, init?: RequestInit): Promise<T> {
 	const res = await fetch(url, {
 		...init,
 		headers: { "Content-Type": "application/json", ...init?.headers },
 	});
 	const data = await res.json().catch(() => ({}));
+	if (res.status === 401) {
+		window.location.href = "/login";
+	}
 	if (!res.ok) {
-		throw new Error(data?.error ?? `Error ${res.status}`);
+		const error = new Error(data?.error ?? `Error ${res.status}`);
+		Object.assign(error, { data, status: res.status });
+		throw error;
 	}
 	return data as T;
 }
 
-const today = () => new Date().toISOString().split("T")[0];
+export const today = () => new Date().toISOString().split("T")[0];
+
+const isComplete = (p: Profile) => Boolean(p.fullName || p.summary);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-	const [profile, setProfile] = useState<MasterProfile>(emptyProfile);
+	const [profile, setProfile] = useState<Profile>(emptyProfile);
 	const [applications, setApplications] = useState<JobApplication[]>([]);
-	const [activeView, setActiveView] = useState<AppView>("kanban");
-	const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 	const [isLoadingDb, setIsLoadingDb] = useState(true);
+	const profileRef = useRef(profile);
+	profileRef.current = profile;
+	const appsRef = useRef(applications);
+	appsRef.current = applications;
 
-	// Carga inicial: primero la caché local (instantánea), luego PostgreSQL.
-	useEffect(() => {
-		let mounted = true;
-		setProfile(readCache(PROFILE_KEY, emptyProfile));
-		setApplications(readCache<JobApplication[]>(APPS_KEY, []));
-
-		Promise.allSettled([
-			api<{ profile: MasterProfile | null }>("/api/profile"),
+	const reload = useCallback(async () => {
+		const [profileRes, appsRes] = await Promise.allSettled([
+			api<{ profile: Profile | null }>("/api/profile"),
 			api<{ applications: JobApplication[] }>("/api/applications"),
-		])
-			.then(([profileRes, appsRes]) => {
-				if (!mounted) return;
-				if (profileRes.status === "fulfilled") {
-					setProfile(profileRes.value.profile ?? emptyProfile);
-				}
-				if (appsRes.status === "fulfilled") {
-					const apps = appsRes.value.applications;
-					setApplications(apps);
-					setSelectedJobId(apps[0]?.id ?? null);
-				}
-				if (profileRes.status === "rejected" || appsRes.status === "rejected") {
-					console.warn("No se pudo sincronizar con PostgreSQL; usando caché.");
-				}
-			})
-			.finally(() => mounted && setIsLoadingDb(false));
-
-		return () => {
-			mounted = false;
-		};
-	}, []);
-
-	// Respaldo en localStorage.
-	useEffect(() => writeCache(PROFILE_KEY, profile), [profile]);
-	useEffect(() => writeCache(APPS_KEY, applications), [applications]);
-
-	const updateProfile = useCallback(
-		async (updated: Partial<MasterProfile>) => {
-			const next = { ...profile, ...updated };
-			setProfile(next);
-			try {
-				const data = await api<{ profile: MasterProfile }>("/api/profile", {
-					method: "PUT",
-					body: JSON.stringify(next),
-				});
-				setProfile(data.profile);
-				showToast("Perfil maestro guardado en PostgreSQL");
-			} catch (err) {
-				console.error("Error al guardar el perfil:", err);
-				showToast("Perfil actualizado localmente", "info");
-			}
-		},
-		[profile],
-	);
-
-	const addApplication = useCallback(async (job: JobApplication) => {
-		setApplications((prev) => [job, ...prev]);
-		try {
-			const data = await api<{ application: JobApplication }>(
-				"/api/applications",
-				{ method: "POST", body: JSON.stringify(job) },
-			);
-			// Reemplaza el id temporal por el definitivo de la base.
-			setApplications((prev) =>
-				prev.map((a) => (a.id === job.id ? data.application : a)),
-			);
-			setSelectedJobId((cur) => (cur === job.id ? data.application.id : cur));
-			showToast(`Vacante guardada en PostgreSQL: ${job.title}`);
-		} catch (err) {
-			console.error("Error al guardar la vacante:", err);
-			showToast(`Vacante guardada localmente: ${job.title}`, "info");
+		]);
+		if (profileRes.status === "fulfilled") {
+			setProfile(profileRes.value.profile ?? emptyProfile);
+		}
+		if (appsRes.status === "fulfilled") {
+			setApplications(appsRes.value.applications);
+		}
+		if (profileRes.status === "rejected" || appsRes.status === "rejected") {
+			toast.error("No se pudo sincronizar con la base; usando la caché local.");
 		}
 	}, []);
 
-	const updateApplication = useCallback(
-		async (id: string, updated: Partial<JobApplication>) => {
+	// Carga inicial: primero la caché local (instantánea), luego PostgreSQL.
+	useEffect(() => {
+		setProfile(readCache(PROFILE_KEY, emptyProfile));
+		setApplications(readCache<JobApplication[]>(APPS_KEY, []));
+		reload().finally(() => setIsLoadingDb(false));
+	}, [reload]);
+
+	useEffect(() => writeCache(PROFILE_KEY, profile), [profile]);
+	useEffect(() => writeCache(APPS_KEY, applications), [applications]);
+
+	const updateProfile = useCallback<AppContextType["updateProfile"]>(
+		async (updated, opts) => {
+			const next = { ...profileRef.current, ...updated };
+			setProfile(next);
+			try {
+				await api<{ profile: MasterProfile }>("/api/profile", {
+					method: "PUT",
+					body: JSON.stringify(next),
+				});
+				if (!opts?.silent) toast.success("CV maestro guardado");
+			} catch (err) {
+				console.error("Error al guardar el perfil:", err);
+				toast.error("No se pudo guardar en la base (quedó en caché local).");
+			}
+		},
+		[],
+	);
+
+	const addApplication = useCallback<AppContextType["addApplication"]>(
+		async (job) => {
+			const tempId = `tmp-${Date.now()}`;
+			setApplications((prev) => [{ ...job, id: tempId }, ...prev]);
+			try {
+				const data = await api<{ application: JobApplication }>(
+					"/api/applications",
+					{ method: "POST", body: JSON.stringify(job) },
+				);
+				setApplications((prev) =>
+					prev.map((a) => (a.id === tempId ? data.application : a)),
+				);
+				toast.success(`Vacante guardada: ${job.title}`);
+				return data.application;
+			} catch (err) {
+				console.error("Error al guardar la vacante:", err);
+				setApplications((prev) => prev.filter((a) => a.id !== tempId));
+				toast.error("No se pudo guardar la vacante.");
+				return null;
+			}
+		},
+		[],
+	);
+
+	const updateApplication = useCallback<AppContextType["updateApplication"]>(
+		async (id, updated) => {
 			setApplications((prev) =>
 				prev.map((app) => (app.id === id ? { ...app, ...updated } : app)),
 			);
+			if (id.startsWith("tmp-")) return;
 			try {
 				await api(`/api/applications/${id}`, {
 					method: "PATCH",
@@ -178,62 +186,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
 				});
 			} catch (err) {
 				console.error("Error al actualizar la postulación:", err);
+				toast.error("No se pudo guardar el cambio en la base.");
 			}
 		},
 		[],
 	);
 
-	const deleteApplication = useCallback(
-		async (id: string) => {
+	const deleteApplication = useCallback<AppContextType["deleteApplication"]>(
+		async (id) => {
 			setApplications((prev) => prev.filter((app) => app.id !== id));
-			showToast("Postulación eliminada del tablero", "info");
-			if (selectedJobId === id) {
-				setSelectedJobId(null);
-				setActiveView("kanban");
-			}
+			toast.info("Postulación eliminada");
 			try {
 				await api(`/api/applications/${id}`, { method: "DELETE" });
 			} catch (err) {
 				console.error("Error al eliminar la postulación:", err);
 			}
 		},
-		[selectedJobId],
+		[],
 	);
 
-	const updateStatus = useCallback(
-		async (id: string, status: JobStatus) => {
+	const updateStatus = useCallback<AppContextType["updateStatus"]>(
+		async (id, status) => {
 			const updates: Partial<JobApplication> = { status };
-			const current = applications.find((a) => a.id === id);
+			const current = appsRef.current.find((a) => a.id === id);
+			// Al pasar a "Postulado" se registra la fecha del día.
 			if (status === "applied" && current && !current.dateApplied) {
 				updates.dateApplied = today();
 			}
 			await updateApplication(id, updates);
-			showToast("Estado actualizado");
 		},
-		[applications, updateApplication],
+		[updateApplication],
 	);
-
-	const viewJobDetail = useCallback((id: string) => {
-		setSelectedJobId(id);
-		setActiveView("detail");
-	}, []);
 
 	const value = useMemo<AppContextType>(
 		() => ({
 			profile,
-			setProfile,
+			hasProfile: isComplete(profile),
 			updateProfile,
 			applications,
 			addApplication,
 			updateApplication,
 			deleteApplication,
 			updateStatus,
-			activeView,
-			setActiveView,
-			selectedJobId,
-			setSelectedJobId,
-			viewJobDetail,
-			showToast,
+			reload,
 			isLoadingDb,
 		}),
 		[
@@ -244,9 +239,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			updateApplication,
 			deleteApplication,
 			updateStatus,
-			activeView,
-			selectedJobId,
-			viewJobDetail,
+			reload,
 			isLoadingDb,
 		],
 	);
