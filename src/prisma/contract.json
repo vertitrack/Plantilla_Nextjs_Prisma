@@ -360,6 +360,20 @@
                   "kind": "scalar"
                 }
               },
+              "cvAnalysis": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
+              "cvAnalyzedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "education": {
                 "nullable": false,
                 "type": {
@@ -488,6 +502,12 @@
               "fields": {
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "cvAnalysis": {
+                  "column": "cvAnalysis"
+                },
+                "cvAnalyzedAt": {
+                  "column": "cvAnalyzedAt"
                 },
                 "education": {
                   "column": "education"
@@ -744,6 +764,16 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "cvAnalysis": {
+                  "codecId": "pg/jsonb@1",
+                  "nativeType": "jsonb",
+                  "nullable": true
+                },
+                "cvAnalyzedAt": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "education": {
                   "codecId": "pg/jsonb@1",
                   "nativeType": "jsonb",
@@ -848,7 +878,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e65978b9001e4c45f97a621cd4c55c0f01c3e26d0a98d8860de746c8a678050f"
+    "storageHash": "8bef07bebcd39bcfbb627640e8a9f22c23d5d030a2401210b1a0f563078e9a79"
   },
   "execution": {
     "executionHash": "90386f876de27eda31d8091195fd8ab5d5c85dc58b634ff0610e0fc2d622c642",

@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e65978b9001e4c45f97a621cd4c55c0f01c3e26d0a98d8860de746c8a678050f'>;
+  StorageHashBase<'8bef07bebcd39bcfbb627640e8a9f22c23d5d030a2401210b1a0f563078e9a79'>;
 export type ExecutionHash =
   ExecutionHashBase<'90386f876de27eda31d8091195fd8ab5d5c85dc58b634ff0610e0fc2d622c642'>;
 export type ProfileHash =
@@ -292,6 +292,8 @@ export type FieldOutputTypes = {
       readonly experiences: CodecTypes['pg/jsonb@1']['output'];
       readonly projects: CodecTypes['pg/jsonb@1']['output'];
       readonly education: CodecTypes['pg/jsonb@1']['output'];
+      readonly cvAnalysis: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly cvAnalyzedAt: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
@@ -350,6 +352,8 @@ export type FieldInputTypes = {
       readonly experiences: CodecTypes['pg/jsonb@1']['input'];
       readonly projects: CodecTypes['pg/jsonb@1']['input'];
       readonly education: CodecTypes['pg/jsonb@1']['input'];
+      readonly cvAnalysis: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly cvAnalyzedAt: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
@@ -393,6 +397,8 @@ export type StorageColumnTypes = {
     };
     readonly MasterProfile: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly cvAnalysis: CodecTypes['pg/jsonb@1']['output'] | null;
+      readonly cvAnalyzedAt: CodecTypes['pg/text@1']['output'] | null;
       readonly education: CodecTypes['pg/jsonb@1']['output'];
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly experiences: CodecTypes['pg/jsonb@1']['output'];
@@ -451,6 +457,8 @@ export type StorageColumnInputTypes = {
     };
     readonly MasterProfile: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly cvAnalysis: CodecTypes['pg/jsonb@1']['input'] | null;
+      readonly cvAnalyzedAt: CodecTypes['pg/text@1']['input'] | null;
       readonly education: CodecTypes['pg/jsonb@1']['input'];
       readonly email: CodecTypes['pg/text@1']['input'];
       readonly experiences: CodecTypes['pg/jsonb@1']['input'];
@@ -741,6 +749,16 @@ type ContractBase = Omit<
                   readonly nativeType: 'jsonb';
                   readonly codecId: 'pg/jsonb@1';
                   readonly nullable: false;
+                };
+                readonly cvAnalysis: {
+                  readonly nativeType: 'jsonb';
+                  readonly codecId: 'pg/jsonb@1';
+                  readonly nullable: true;
+                };
+                readonly cvAnalyzedAt: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
                 readonly createdAt: {
                   readonly nativeType: 'timestamptz';
@@ -1036,6 +1054,14 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
               };
+              readonly cvAnalysis: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
+              };
+              readonly cvAnalyzedAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -1072,6 +1098,8 @@ type ContractBase = Omit<
                 readonly experiences: { readonly column: 'experiences' };
                 readonly projects: { readonly column: 'projects' };
                 readonly education: { readonly column: 'education' };
+                readonly cvAnalysis: { readonly column: 'cvAnalysis' };
+                readonly cvAnalyzedAt: { readonly column: 'cvAnalyzedAt' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };

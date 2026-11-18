@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { readJson, serverError } from "@/lib/http";
-import { getOrSeedProfile, upsertProfile } from "@/lib/repository";
+import { readJson, serverError, withAuth } from "@/lib/http";
+import { getProfile, upsertProfile } from "@/lib/repository";
 
-export async function GET() {
+export const GET = withAuth(async () => {
 	try {
-		return NextResponse.json({ profile: await getOrSeedProfile() });
+		return NextResponse.json({ profile: await getProfile() });
 	} catch (error) {
 		return serverError("GET /api/profile", error, "Error al cargar el perfil");
 	}
-}
+});
 
-export async function PUT(request: Request) {
+export const PUT = withAuth(async (request: Request) => {
 	try {
 		const profile = await upsertProfile(await readJson(request));
 		return NextResponse.json({ profile });
 	} catch (error) {
 		return serverError("PUT /api/profile", error, "Error al actualizar perfil");
 	}
-}
+});

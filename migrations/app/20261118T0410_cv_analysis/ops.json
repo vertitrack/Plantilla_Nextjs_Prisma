@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.MasterProfile.cvAnalysis",
+    "label": "Add column \"cvAnalysis\" to \"MasterProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "cvAnalysis",
+        "table": "MasterProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"cvAnalysis\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "MasterProfile",
+          "cvAnalysis"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"cvAnalysis\"",
+        "sql": "ALTER TABLE \"public\".\"MasterProfile\" ADD COLUMN \"cvAnalysis\" jsonb"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"cvAnalysis\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "MasterProfile",
+          "cvAnalysis"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.MasterProfile.cvAnalyzedAt",
+    "label": "Add column \"cvAnalyzedAt\" to \"MasterProfile\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "cvAnalyzedAt",
+        "table": "MasterProfile"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"cvAnalyzedAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "MasterProfile",
+          "cvAnalyzedAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"cvAnalyzedAt\"",
+        "sql": "ALTER TABLE \"public\".\"MasterProfile\" ADD COLUMN \"cvAnalyzedAt\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"cvAnalyzedAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "MasterProfile",
+          "cvAnalyzedAt"
+        ]
+      }
+    ]
+  }
+]

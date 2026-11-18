@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/auth";
 
 /** Lee el cuerpo JSON como objeto; devuelve {} si no es un objeto válido. */
 export async function readJson(
@@ -28,4 +29,19 @@ export function serverError(context: string, error: unknown, fallback: string) {
 
 export function badRequest(error: string) {
 	return NextResponse.json({ error }, { status: 400 });
+}
+
+/**
+ * Envuelve un Route Handler para exigir sesión. El proxy ya bloquea la API sin
+ * sesión, pero lo comprobamos de nuevo aquí como defensa en profundidad.
+ */
+export function withAuth<A extends unknown[]>(
+	handler: (...args: A) => Promise<Response>,
+) {
+	return async (...args: A): Promise<Response> => {
+		if (!(await isAuthenticated())) {
+			return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+		}
+		return handler(...args);
+	};
 }

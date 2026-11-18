@@ -1,7 +1,8 @@
 import "server-only";
-import { Type } from "@google/genai";
+import { type Schema, Type } from "@google/genai";
 import { generateJson } from "@/lib/gemini";
 import type {
+	CvAnalysis,
 	JobEvaluation,
 	MasterProfile,
 	QAPair,
@@ -238,84 +239,127 @@ ${questions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`;
 	});
 }
 
-/** Convierte el texto de un CV en un perfil maestro estructurado. */
-export async function parseCv(rawText: string) {
-	const parsed = await generateJson<Partial<MasterProfile>>(
-		`Eres un reclutador y experto en carreras técnicas. Analiza el siguiente texto de un currículum o perfil profesional y extrae todos los datos estructurados con el mayor detalle posible. No inventes información:
-
-Texto del CV:
-${rawText.slice(0, 20000)}`,
-		{
-			type: Type.OBJECT,
-			properties: {
-				fullName: { type: Type.STRING },
-				headline: { type: Type.STRING },
-				email: { type: Type.STRING },
-				phone: { type: Type.STRING },
-				location: { type: Type.STRING },
-				portfolioUrl: { type: Type.STRING },
-				linkedinUrl: { type: Type.STRING },
-				githubUrl: { type: Type.STRING },
-				summary: { type: Type.STRING },
-				skills: {
-					type: Type.ARRAY,
-					items: {
-						type: Type.OBJECT,
-						properties: {
-							category: { type: Type.STRING },
-							items: { type: Type.ARRAY, items: { type: Type.STRING } },
-						},
-						required: ["category", "items"],
-					},
+/** Esquema del perfil maestro que Gemini debe devolver al leer un CV. */
+const PROFILE_SCHEMA = {
+	type: Type.OBJECT,
+	properties: {
+		fullName: { type: Type.STRING },
+		headline: { type: Type.STRING },
+		email: { type: Type.STRING },
+		phone: { type: Type.STRING },
+		location: { type: Type.STRING },
+		portfolioUrl: { type: Type.STRING },
+		linkedinUrl: { type: Type.STRING },
+		githubUrl: { type: Type.STRING },
+		summary: { type: Type.STRING },
+		skills: {
+			type: Type.ARRAY,
+			items: {
+				type: Type.OBJECT,
+				properties: {
+					category: { type: Type.STRING },
+					items: { type: Type.ARRAY, items: { type: Type.STRING } },
 				},
-				experiences: {
-					type: Type.ARRAY,
-					items: {
-						type: Type.OBJECT,
-						properties: {
-							id: { type: Type.STRING },
-							company: { type: Type.STRING },
-							role: { type: Type.STRING },
-							period: { type: Type.STRING },
-							highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
-							skillsUsed: { type: Type.ARRAY, items: { type: Type.STRING } },
-						},
-						required: ["company", "role", "period", "highlights", "skillsUsed"],
-					},
-				},
-				projects: {
-					type: Type.ARRAY,
-					items: {
-						type: Type.OBJECT,
-						properties: {
-							id: { type: Type.STRING },
-							name: { type: Type.STRING },
-							description: { type: Type.STRING },
-							highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
-							technologies: { type: Type.ARRAY, items: { type: Type.STRING } },
-						},
-						required: ["name", "description", "highlights", "technologies"],
-					},
-				},
-				education: {
-					type: Type.ARRAY,
-					items: {
-						type: Type.OBJECT,
-						properties: {
-							institution: { type: Type.STRING },
-							degree: { type: Type.STRING },
-							year: { type: Type.STRING },
-						},
-						required: ["institution", "degree", "year"],
-					},
-				},
-				targetRoles: { type: Type.ARRAY, items: { type: Type.STRING } },
-				targetSalary: { type: Type.STRING },
+				required: ["category", "items"],
 			},
-			required: ["fullName", "headline", "summary", "skills", "experiences"],
 		},
-	);
+		experiences: {
+			type: Type.ARRAY,
+			items: {
+				type: Type.OBJECT,
+				properties: {
+					id: { type: Type.STRING },
+					company: { type: Type.STRING },
+					role: { type: Type.STRING },
+					period: { type: Type.STRING },
+					highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+					skillsUsed: { type: Type.ARRAY, items: { type: Type.STRING } },
+				},
+				required: ["company", "role", "period", "highlights", "skillsUsed"],
+			},
+		},
+		projects: {
+			type: Type.ARRAY,
+			items: {
+				type: Type.OBJECT,
+				properties: {
+					id: { type: Type.STRING },
+					name: { type: Type.STRING },
+					description: { type: Type.STRING },
+					highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+					technologies: { type: Type.ARRAY, items: { type: Type.STRING } },
+				},
+				required: ["name", "description", "highlights", "technologies"],
+			},
+		},
+		education: {
+			type: Type.ARRAY,
+			items: {
+				type: Type.OBJECT,
+				properties: {
+					institution: { type: Type.STRING },
+					degree: { type: Type.STRING },
+					year: { type: Type.STRING },
+				},
+				required: ["institution", "degree", "year"],
+			},
+		},
+		targetRoles: { type: Type.ARRAY, items: { type: Type.STRING } },
+		targetSalary: { type: Type.STRING },
+	},
+	required: ["fullName", "headline", "summary", "skills", "experiences"],
+} satisfies Schema;
 
+const CV_ANALYSIS_SCHEMA = {
+	type: Type.OBJECT,
+	properties: {
+		overallScore: {
+			type: Type.INTEGER,
+			description:
+				"Calidad general del CV de 0 a 100 (claridad, impacto cuantificado, estructura, relevancia)",
+		},
+		verdict: {
+			type: Type.STRING,
+			description: "Veredicto honesto del CV en una frase",
+		},
+		seniority: {
+			type: Type.STRING,
+			description: "Nivel estimado: Junior, Mid, Senior, Lead, Staff, etc.",
+		},
+		strengths: {
+			type: Type.ARRAY,
+			items: { type: Type.STRING },
+			description: "3 a 5 fortalezas concretas del perfil",
+		},
+		improvements: {
+			type: Type.ARRAY,
+			items: { type: Type.STRING },
+			description:
+				"3 a 6 mejoras accionables del CV (qué cambiar y cómo), sin inventar logros",
+		},
+		suggestedRoles: {
+			type: Type.ARRAY,
+			items: { type: Type.STRING },
+			description: "Roles a los que el candidato debería postular",
+		},
+		atsTips: {
+			type: Type.ARRAY,
+			items: { type: Type.STRING },
+			description: "Consejos para pasar filtros ATS",
+		},
+	},
+	required: [
+		"overallScore",
+		"verdict",
+		"seniority",
+		"strengths",
+		"improvements",
+		"suggestedRoles",
+		"atsTips",
+	],
+} satisfies Schema;
+
+function withProfileIds(parsed: Partial<MasterProfile>) {
 	const stamp = Date.now();
 	parsed.experiences = parsed.experiences?.map((exp, idx) => ({
 		...exp,
@@ -326,6 +370,60 @@ ${rawText.slice(0, 20000)}`,
 		id: proj.id || `proj-${stamp}-${idx}`,
 	}));
 	return parsed;
+}
+
+/** Convierte el texto de un CV en un perfil maestro estructurado. */
+export async function parseCv(rawText: string) {
+	const parsed = await generateJson<Partial<MasterProfile>>(
+		`Eres un reclutador y experto en carreras técnicas. Analiza el siguiente texto de un currículum o perfil profesional y extrae todos los datos estructurados con el mayor detalle posible. No inventes información:
+
+Texto del CV:
+${rawText.slice(0, 20000)}`,
+		PROFILE_SCHEMA,
+	);
+	return withProfileIds(parsed);
+}
+
+/** CV de entrada: texto plano o un archivo (PDF) en base64. */
+export type CvInput =
+	| { kind: "text"; text: string }
+	| { kind: "file"; mimeType: string; base64: string };
+
+/**
+ * Lee tu CV (texto o PDF), extrae el perfil maestro y lo evalúa como lo haría
+ * un reclutador senior. Todo en una sola llamada a Gemini.
+ */
+export async function analyzeCv(input: CvInput) {
+	const instructions = `Eres un reclutador técnico senior y experto en carreras.
+Tienes dos tareas sobre el currículum adjunto:
+1. "profile": extrae todos los datos estructurados con el mayor detalle posible. No inventes información; deja vacío lo que no aparezca. En "targetRoles" incluye los roles a los que apunta el candidato si se mencionan.
+2. "analysis": evalúa el CV con honestidad (puntaje 0-100, fortalezas, mejoras accionables, roles sugeridos, consejos ATS). Responde en español.`;
+
+	const parts =
+		input.kind === "text"
+			? [
+					{
+						text: `${instructions}\n\nTexto del CV:\n${input.text.slice(0, 30000)}`,
+					},
+				]
+			: [
+					{ inlineData: { mimeType: input.mimeType, data: input.base64 } },
+					{ text: instructions },
+				];
+
+	const result = await generateJson<{
+		profile: Partial<MasterProfile>;
+		analysis: CvAnalysis;
+	}>([{ role: "user", parts }], {
+		type: Type.OBJECT,
+		properties: { profile: PROFILE_SCHEMA, analysis: CV_ANALYSIS_SCHEMA },
+		required: ["profile", "analysis"],
+	});
+
+	return {
+		profile: withProfileIds(result.profile ?? {}),
+		analysis: result.analysis,
+	};
 }
 
 /** Extrae los datos clave de una vacante a partir de su texto plano. */

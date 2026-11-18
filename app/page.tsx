@@ -1,12 +1,10 @@
-import {
-	BriefcaseIcon,
-	DatabaseIcon,
-	SparklesIcon,
-	UserIcon,
-} from "lucide-react";
+import { BriefcaseIcon, LogOutIcon } from "lucide-react";
 import { connection } from "next/server";
+import { CvAnalysisView } from "@/components/cv-analysis";
+import { CvUpload } from "@/components/cv-upload";
 import { ModeToggle } from "@/components/mode-toggle";
-import { Badge } from "@/components/ui/badge";
+import { ProfileView } from "@/components/profile-view";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -14,151 +12,81 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { getOrSeedProfile, listOrSeedApplications } from "@/lib/repository";
-import { JOB_STATUSES } from "@/lib/types";
+import { requireAuth } from "@/lib/auth";
+import { getProfile } from "@/lib/repository";
+import { logout } from "./login/actions";
 
-// Página provisional: muestra que el backend de JustWork funciona mientras se
-// construye la nueva interfaz con shadcn/ui.
-
-const ENDPOINTS = [
-	["GET / PUT", "/api/profile", "Perfil maestro (se siembra si está vacío)"],
-	["POST", "/api/profile/reset", "Restaura los datos de demostración"],
-	["GET / POST", "/api/applications", "Lista o crea postulaciones"],
-	[
-		"PATCH / DELETE",
-		"/api/applications/[id]",
-		"Edita o elimina una postulación",
-	],
-	["POST", "/api/scrape-job", "Extrae una vacante desde una URL"],
-	["POST", "/api/gemini/evaluate-job", "Evalúa la afinidad con la vacante"],
-	["POST", "/api/gemini/tailor-resume", "Adapta CV y carta de presentación"],
-	["POST", "/api/gemini/answer-questions", "Responde preguntas de screening"],
-	["POST", "/api/gemini/parse-cv", "Convierte un CV en perfil estructurado"],
-] as const;
+const dateFormat = new Intl.DateTimeFormat("es-CL", {
+	dateStyle: "medium",
+	timeStyle: "short",
+});
 
 export default async function Home() {
 	await connection();
-	const [profile, applications] = await Promise.all([
-		getOrSeedProfile(),
-		listOrSeedApplications(),
-	]);
-	const byStatus = JOB_STATUSES.map((status) => ({
-		status,
-		count: applications.filter((a) => a.status === status).length,
-	}));
-	const geminiReady = Boolean(process.env.GEMINI_API_KEY);
+	await requireAuth();
+	const profile = await getProfile();
 
 	return (
-		<div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
-			<header className="flex flex-wrap items-start justify-between gap-4">
-				<div className="grid gap-2">
-					<div className="flex items-center gap-2 text-muted-foreground text-sm">
-						<DatabaseIcon className="size-4" />
-						Backend de JustWork · Prisma 8 · Gemini
+		<div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
+			<header className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-2">
+					<div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+						<BriefcaseIcon className="size-4" />
 					</div>
-					<h1 className="font-heading font-semibold text-3xl tracking-tight">
-						JustWork
-					</h1>
-					<p className="max-w-xl text-muted-foreground">
-						La lógica y la API ya están conectadas a PostgreSQL. La interfaz se
-						construirá encima de estas rutas.
-					</p>
+					<span className="font-heading font-semibold text-lg">JustWork</span>
 				</div>
 				<div className="flex items-center gap-2">
-					<Badge variant={geminiReady ? "secondary" : "destructive"}>
-						<SparklesIcon />
-						{geminiReady ? "Gemini configurado" : "Falta GEMINI_API_KEY"}
-					</Badge>
 					<ModeToggle />
+					<form action={logout}>
+						<Button variant="ghost" size="sm" type="submit">
+							<LogOutIcon />
+							Salir
+						</Button>
+					</form>
 				</div>
 			</header>
 
-			<Separator />
+			{profile ? (
+				<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+					<Card>
+						<CardContent>
+							<ProfileView profile={profile} />
+						</CardContent>
+					</Card>
 
-			<div className="grid gap-6 md:grid-cols-2">
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<UserIcon className="size-4" />
-							Perfil maestro
-						</CardTitle>
-						<CardDescription>{profile.headline}</CardDescription>
-					</CardHeader>
-					<CardContent className="grid gap-1 text-sm">
-						<p className="font-medium">{profile.fullName}</p>
-						<p className="text-muted-foreground">{profile.location}</p>
+					<div className="grid gap-6">
+						{profile.cvAnalysis ? (
+							<Card>
+								<CardHeader>
+									<CardTitle>Análisis de tu CV</CardTitle>
+									{profile.cvAnalyzedAt ? (
+										<CardDescription>
+											{dateFormat.format(new Date(profile.cvAnalyzedAt))}
+										</CardDescription>
+									) : null}
+								</CardHeader>
+								<CardContent>
+									<CvAnalysisView analysis={profile.cvAnalysis} />
+								</CardContent>
+							</Card>
+						) : null}
+						<CvUpload hasProfile />
+					</div>
+				</div>
+			) : (
+				<div className="mx-auto grid w-full max-w-3xl gap-6 py-6">
+					<div className="grid gap-2 text-center">
+						<h1 className="font-heading font-semibold text-3xl tracking-tight">
+							Empecemos por ti
+						</h1>
 						<p className="text-muted-foreground">
-							{profile.experiences.length} experiencias ·{" "}
-							{profile.projects.length} proyectos ·{" "}
-							{profile.skills.reduce((n, s) => n + s.items.length, 0)}{" "}
-							habilidades
+							Sube tu CV para crear tu perfil maestro. Será la fuente de verdad
+							para evaluar vacantes, adaptar tu CV y responder formularios.
 						</p>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<BriefcaseIcon className="size-4" />
-							Postulaciones
-						</CardTitle>
-						<CardDescription>
-							{applications.length} en total por estado
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="flex flex-wrap gap-2">
-						{byStatus.map(({ status, count }) => (
-							<Badge key={status} variant={count ? "default" : "outline"}>
-								{status} · {count}
-							</Badge>
-						))}
-					</CardContent>
-				</Card>
-			</div>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>Rutas API</CardTitle>
-					<CardDescription>
-						Portadas desde JustWork; la lógica vive en <code>lib/</code>.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Método</TableHead>
-								<TableHead>Ruta</TableHead>
-								<TableHead className="hidden sm:table-cell">
-									Descripción
-								</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{ENDPOINTS.map(([method, path, description]) => (
-								<TableRow key={path}>
-									<TableCell className="text-muted-foreground text-xs">
-										{method}
-									</TableCell>
-									<TableCell className="font-mono text-xs">{path}</TableCell>
-									<TableCell className="hidden text-muted-foreground sm:table-cell">
-										{description}
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</CardContent>
-			</Card>
+					</div>
+					<CvUpload hasProfile={false} />
+				</div>
+			)}
 		</div>
 	);
 }

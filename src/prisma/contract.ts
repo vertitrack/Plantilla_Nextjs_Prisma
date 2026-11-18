@@ -20,6 +20,9 @@ export const contract = defineContract({}, ({ field, model }) => {
 			experiences: field.json(),
 			projects: field.json(),
 			education: field.json(),
+			// Último análisis del CV hecho con IA (puntaje, fortalezas, mejoras...).
+			cvAnalysis: field.json().optional(),
+			cvAnalyzedAt: field.text().optional(),
 			createdAt: field.temporal.createdAtString(),
 			updatedAt: field.temporal.updatedAtString(),
 		},

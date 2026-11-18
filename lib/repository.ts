@@ -1,7 +1,8 @@
 import "server-only";
 import type { Char, JsonValue } from "@prisma/orm-postgres/target/codec-types";
-import { initialApplications, initialMasterProfile } from "@/lib/seed-data";
 import {
+	type CvAnalysis,
+	emptyProfile,
 	JOB_STATUSES,
 	type JobApplication,
 	type JobStatus,
@@ -20,7 +21,11 @@ type Db = typeof db;
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 type Orm = Db["orm"] | Tx["orm"];
 
-export type StoredProfile = MasterProfile & { id: string };
+export type StoredProfile = MasterProfile & {
+	id: string;
+	cvAnalysis?: CvAnalysis;
+	cvAnalyzedAt?: string;
+};
 
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -79,6 +84,8 @@ function rowToProfile(row: NonNullable<ProfileRow>): StoredProfile {
 		experiences: fromJson<MasterProfile["experiences"]>(row.experiences),
 		projects: fromJson<MasterProfile["projects"]>(row.projects),
 		education: fromJson<MasterProfile["education"]>(row.education),
+		cvAnalysis: (row.cvAnalysis ?? undefined) as CvAnalysis | undefined,
+		cvAnalyzedAt: undef(row.cvAnalyzedAt),
 	};
 }
 
@@ -125,44 +132,54 @@ export function mergeProfile(base: MasterProfile, body: Body): MasterProfile {
 	};
 }
 
-const EMPTY_PROFILE: MasterProfile = {
-	fullName: "",
-	headline: "",
-	email: "",
-	phone: "",
-	location: "",
-	summary: "",
-	targetRoles: [],
-	skills: [],
-	experiences: [],
-	projects: [],
-	education: [],
-};
-
 async function createProfile(orm: Orm, profile: MasterProfile) {
 	return rowToProfile(
 		await orm.public.MasterProfile.create(profileToRow(profile)),
 	);
 }
 
-/** Devuelve el perfil; si la base está vacía, la siembra con el de demostración. */
-export async function getOrSeedProfile(): Promise<StoredProfile> {
+/** Devuelve tu perfil maestro, o null si todavía no subes tu CV. */
+export async function getProfile(): Promise<StoredProfile | null> {
 	const row = await db.orm.public.MasterProfile.first();
-	if (row) return rowToProfile(row);
-	return createProfile(db.orm, initialMasterProfile);
+	return row ? rowToProfile(row) : null;
 }
 
 /** Actualiza (o crea) el único perfil maestro con los campos recibidos. */
 export async function upsertProfile(body: Body): Promise<StoredProfile> {
 	const existing = await db.orm.public.MasterProfile.first();
 	if (!existing) {
-		return createProfile(db.orm, mergeProfile(EMPTY_PROFILE, body));
+		return createProfile(db.orm, mergeProfile(emptyProfile, body));
 	}
 	const merged = mergeProfile(rowToProfile(existing), body);
 	const updated = await db.orm.public.MasterProfile.where({
 		id: existing.id,
 	}).update(profileToRow(merged));
 	return updated ? rowToProfile(updated) : { ...merged, id: existing.id };
+}
+
+/**
+ * Reemplaza tu perfil maestro con el extraído del CV y guarda su análisis.
+ * Si no hay perfil todavía, lo crea.
+ */
+export async function saveProfileFromCv(
+	body: Body,
+	analysis: CvAnalysis | null,
+): Promise<StoredProfile> {
+	const profile = mergeProfile(emptyProfile, body);
+	const row = {
+		...profileToRow(profile),
+		cvAnalysis: analysis ? json(analysis) : null,
+		cvAnalyzedAt: analysis ? new Date().toISOString() : null,
+	};
+	const existing = await db.orm.public.MasterProfile.first();
+	if (!existing) {
+		return rowToProfile(await db.orm.public.MasterProfile.create(row));
+	}
+	const updated = await db.orm.public.MasterProfile.where({
+		id: existing.id,
+	}).update(row);
+	if (!updated) throw new Error("No se pudo guardar el perfil.");
+	return rowToProfile(updated);
 }
 
 // ---------- JobApplication ----------
@@ -303,29 +320,11 @@ async function insertApplication(orm: Orm, body: Body) {
 	return rowToApplication(row);
 }
 
-async function seedApplications(orm: Orm) {
-	const created: JobApplication[] = [];
-	for (const app of initialApplications) {
-		// El id de la semilla ("job-1") no es UUID: dejamos que Prisma genere uno.
-		const { id: _seedId, ...rest } = app;
-		created.push(await insertApplication(orm, rest as unknown as Body));
-	}
-	return created;
-}
-
 export async function listApplications(): Promise<JobApplication[]> {
 	const rows = await db.orm.public.JobApplication.orderBy((a) =>
 		a.createdAt.desc(),
 	).all();
 	return rows.map(rowToApplication);
-}
-
-/** Lista las postulaciones; si no hay ninguna, siembra las de demostración. */
-export async function listOrSeedApplications(): Promise<JobApplication[]> {
-	const existing = await listApplications();
-	if (existing.length > 0) return existing;
-	await seedApplications(db.orm);
-	return listApplications();
 }
 
 export function createApplication(body: Body) {
@@ -347,15 +346,4 @@ export async function updateApplication(id: Char<36>, body: Body) {
 
 export async function deleteApplication(id: Char<36>) {
 	await db.orm.public.JobApplication.where({ id }).delete();
-}
-
-/** Borra todo y restaura el perfil y las postulaciones de demostración. */
-export function resetToSampleData() {
-	return db.transaction(async (tx) => {
-		await tx.orm.public.JobApplication.where((a) => a.id.isNotNull()).delete();
-		await tx.orm.public.MasterProfile.where((p) => p.id.isNotNull()).delete();
-		const profile = await createProfile(tx.orm, initialMasterProfile);
-		const applications = await seedApplications(tx.orm);
-		return { profile, applications };
-	});
 }

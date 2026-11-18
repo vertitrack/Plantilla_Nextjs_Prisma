@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { parseCv } from "@/lib/ai";
-import { badRequest, readJson, serverError } from "@/lib/http";
+import { badRequest, readJson, serverError, withAuth } from "@/lib/http";
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: Request) => {
 	try {
 		const { rawText } = await readJson(request);
 		if (typeof rawText !== "string" || rawText.trim().length < 50) {
@@ -14,4 +14,4 @@ export async function POST(request: Request) {
 	} catch (error) {
 		return serverError("Parse CV", error, "Error al procesar el CV con IA.");
 	}
-}
+});

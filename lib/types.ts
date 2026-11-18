@@ -45,6 +45,37 @@ export interface MasterProfile {
 	targetSalary?: string;
 }
 
+/** Perfil vacío: estado inicial antes de subir tu CV. */
+export const emptyProfile: MasterProfile = {
+	fullName: "",
+	headline: "",
+	email: "",
+	phone: "",
+	location: "",
+	summary: "",
+	targetRoles: [],
+	skills: [],
+	experiences: [],
+	projects: [],
+	education: [],
+};
+
+/** Evaluación del CV hecha con IA. */
+export interface CvAnalysis {
+	/** Calidad general del CV de 0 a 100. */
+	overallScore: number;
+	/** Veredicto en una frase. */
+	verdict: string;
+	/** Nivel de seniority estimado (Junior, Mid, Senior, Lead...). */
+	seniority: string;
+	strengths: string[];
+	improvements: string[];
+	/** Roles a los que el perfil apunta mejor. */
+	suggestedRoles: string[];
+	/** Consejos para pasar filtros ATS. */
+	atsTips: string[];
+}
+
 export const JOB_STATUSES = [
 	"discovered",
 	"evaluating",

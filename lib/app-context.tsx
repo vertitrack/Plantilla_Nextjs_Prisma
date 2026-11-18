@@ -12,12 +12,12 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
-import { initialApplications, initialMasterProfile } from "@/lib/seed-data";
-import type {
-	AppView,
-	JobApplication,
-	JobStatus,
-	MasterProfile,
+import {
+	type AppView,
+	emptyProfile,
+	type JobApplication,
+	type JobStatus,
+	type MasterProfile,
 } from "@/lib/types";
 
 // Estado de cliente de JustWork: perfil, postulaciones y navegación.
@@ -42,7 +42,6 @@ interface AppContextType {
 	selectedJobId: string | null;
 	setSelectedJobId: (id: string | null) => void;
 	viewJobDetail: (id: string) => void;
-	resetToSampleData: () => Promise<void>;
 	showToast: (message: string, type?: ToastType) => void;
 	isLoadingDb: boolean;
 }
@@ -88,9 +87,8 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
 const today = () => new Date().toISOString().split("T")[0];
 
 export function AppProvider({ children }: { children: ReactNode }) {
-	const [profile, setProfile] = useState<MasterProfile>(initialMasterProfile);
-	const [applications, setApplications] =
-		useState<JobApplication[]>(initialApplications);
+	const [profile, setProfile] = useState<MasterProfile>(emptyProfile);
+	const [applications, setApplications] = useState<JobApplication[]>([]);
 	const [activeView, setActiveView] = useState<AppView>("kanban");
 	const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 	const [isLoadingDb, setIsLoadingDb] = useState(true);
@@ -98,17 +96,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 	// Carga inicial: primero la caché local (instantánea), luego PostgreSQL.
 	useEffect(() => {
 		let mounted = true;
-		setProfile(readCache(PROFILE_KEY, initialMasterProfile));
-		setApplications(readCache(APPS_KEY, initialApplications));
+		setProfile(readCache(PROFILE_KEY, emptyProfile));
+		setApplications(readCache<JobApplication[]>(APPS_KEY, []));
 
 		Promise.allSettled([
-			api<{ profile: MasterProfile }>("/api/profile"),
+			api<{ profile: MasterProfile | null }>("/api/profile"),
 			api<{ applications: JobApplication[] }>("/api/applications"),
 		])
 			.then(([profileRes, appsRes]) => {
 				if (!mounted) return;
 				if (profileRes.status === "fulfilled") {
-					setProfile(profileRes.value.profile);
+					setProfile(profileRes.value.profile ?? emptyProfile);
 				}
 				if (appsRes.status === "fulfilled") {
 					const apps = appsRes.value.applications;
@@ -220,26 +218,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		setActiveView("detail");
 	}, []);
 
-	const resetToSampleData = useCallback(async () => {
-		try {
-			const data = await api<{
-				profile: MasterProfile;
-				applications: JobApplication[];
-			}>("/api/profile/reset", { method: "POST" });
-			setProfile(data.profile);
-			setApplications(data.applications);
-			setSelectedJobId(data.applications[0]?.id ?? null);
-			showToast("Datos de demostración restaurados en PostgreSQL");
-		} catch (err) {
-			console.error("Error al restaurar datos:", err);
-			setProfile(initialMasterProfile);
-			setApplications(initialApplications);
-			setSelectedJobId(initialApplications[0]?.id ?? null);
-			showToast("Datos de demostración restaurados localmente", "info");
-		}
-		setActiveView("kanban");
-	}, []);
-
 	const value = useMemo<AppContextType>(
 		() => ({
 			profile,
@@ -255,7 +233,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			selectedJobId,
 			setSelectedJobId,
 			viewJobDetail,
-			resetToSampleData,
 			showToast,
 			isLoadingDb,
 		}),
@@ -270,7 +247,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			activeView,
 			selectedJobId,
 			viewJobDetail,
-			resetToSampleData,
 			isLoadingDb,
 		],
 	);

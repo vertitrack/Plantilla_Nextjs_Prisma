@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { evaluateJob } from "@/lib/ai";
-import { badRequest, readJson, serverError } from "@/lib/http";
+import { badRequest, readJson, serverError, withAuth } from "@/lib/http";
 import type { MasterProfile } from "@/lib/types";
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: Request) => {
 	try {
 		const { jobTitle, company, jobText, profile } = await readJson(request);
 		if (
@@ -22,4 +22,4 @@ export async function POST(request: Request) {
 	} catch (error) {
 		return serverError("Evaluate job", error, "Error al evaluar la vacante.");
 	}
-}
+});

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { extractJobPosting } from "@/lib/ai";
-import { errorMessage, readJson } from "@/lib/http";
+import { errorMessage, readJson, withAuth } from "@/lib/http";
 import { fetchJobText, parsePublicUrl, ScrapeError } from "@/lib/scraper";
 import type { ScrapedJob } from "@/lib/types";
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: Request) => {
 	try {
 		const { url: rawUrl } = await readJson(request);
 		const url = parsePublicUrl(rawUrl);
@@ -57,4 +57,4 @@ export async function POST(request: Request) {
 			{ status: 500 },
 		);
 	}
-}
+});

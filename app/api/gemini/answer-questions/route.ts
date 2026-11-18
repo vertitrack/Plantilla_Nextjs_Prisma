@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { answerQuestions } from "@/lib/ai";
-import { badRequest, readJson, serverError } from "@/lib/http";
+import { badRequest, readJson, serverError, withAuth } from "@/lib/http";
 import type { MasterProfile } from "@/lib/types";
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: Request) => {
 	try {
 		const { questions, jobTitle, company, jobText, profile } =
 			await readJson(request);
@@ -35,4 +35,4 @@ export async function POST(request: Request) {
 			"Error al generar respuestas para el formulario.",
 		);
 	}
-}
+});
