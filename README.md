@@ -13,26 +13,54 @@ Accede a esta plantilla y mucho más contenido gratuito:
 
 ## Getting Started
 
-First, run the development server:
+Requisitos: Node.js 20+, pnpm y Docker (o cualquier PostgreSQL 15+).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# 1. Instalar dependencias
+pnpm install
+
+# 2. Variables de entorno (DATABASE_URL apunta al Postgres de docker-compose)
+cp .env.example .env
+
+# 3. Levantar PostgreSQL en Docker
+pnpm db:up
+
+# 4. Aplicar las migraciones a la base
+pnpm db:migrate
+
+# 5. Servidor de desarrollo
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000): verás un ejemplo de usuarios y posts que lee y escribe en la base de datos con Server Actions.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Base de datos (Prisma 8)
+
+- El contrato de datos vive en [`src/prisma/contract.ts`](src/prisma/contract.ts) y el cliente en [`src/prisma/db.ts`](src/prisma/db.ts).
+- Las consultas de la página están en [`lib/data.ts`](lib/data.ts) y las mutaciones en [`app/actions.ts`](app/actions.ts).
+
+Flujo para cambiar el modelo:
+
+```bash
+pnpm contract:emit                       # regenera contract.json / contract.d.ts
+pnpm migration:plan --name <descripcion> # crea la migración en migrations/app
+pnpm db:migrate                          # la aplica
+pnpm db:verify                           # comprueba que la base coincide con el contrato
+```
+
+### UI (shadcn/ui)
+
+Los componentes están en [`components/ui`](components/ui) (estilo `base-nova`, Base UI + Tailwind v4). Para agregar más:
+
+```bash
+pnpm dlx shadcn@latest add dialog
+```
 
 ### Características
 
 - ⚡ **Next.js 16.3.4+** - Framework React moderno y rápido
-- 🗄️ **Prisma ORM** - Manejo de base de datos simplificado
+- 🗄️ **Prisma 8 + PostgreSQL** - Contrato de datos tipado, migraciones y Docker Compose listo
+- 🧩 **shadcn/ui** - Componentes accesibles con modo claro/oscuro
 - 🎨 **Optimización de fuentes** - Usando [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) con [Geist](https://vercel.com/font)
 - 📱 **Totalmente responsive** - Listo para cualquier dispositivo
 
@@ -42,6 +70,8 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 {
   "Next.js": "16+",
   "Prisma": "v8",
+  "PostgreSQL": "17 (Docker)",
+  "shadcn/ui": "base-nova",
   "Biome": "latest",
   "Node.js": "20+",
   "Package Manager": "npm/yarn/pnpm/bun"
