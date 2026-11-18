@@ -2,9 +2,10 @@ import "dotenv/config";
 import postgres from "@prisma/orm-postgres/runtime";
 import type { Contract } from "./contract.d";
 import contractJson from "./contract.json" with { type: "json" };
+import { databaseUrl } from "./database-url";
 
 function createDb() {
-	const url = process.env["DATABASE_URL"];
+	const url = databaseUrl();
 	if (!url) {
 		throw new Error(
 			"DATABASE_URL no está definida. Copia .env.example a .env y levanta la base con `docker compose up -d`.",

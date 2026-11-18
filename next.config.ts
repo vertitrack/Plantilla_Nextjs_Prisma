@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
 	experimental: {
 		serverActions: {
 			// Permite subir CVs en PDF (el límite por defecto es 1 MB).
-			bodySizeLimit: "10mb",
+			bodySizeLimit: "4.5mb",
 		},
 	},
 };

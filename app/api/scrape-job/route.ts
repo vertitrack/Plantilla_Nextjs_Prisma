@@ -4,6 +4,9 @@ import { errorMessage, readJson, withAuth } from "@/lib/http";
 import { fetchJobText, parsePublicUrl, ScrapeError } from "@/lib/scraper";
 import type { ScrapedJob } from "@/lib/types";
 
+// Las llamadas a Gemini pueden tardar; Vercel corta en el límite indicado.
+export const maxDuration = 300;
+
 export const POST = withAuth(async (request: Request) => {
 	try {
 		const { url: rawUrl, text } = await readJson(request);

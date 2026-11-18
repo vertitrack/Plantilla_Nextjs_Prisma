@@ -7,7 +7,8 @@ import { errorMessage } from "@/lib/http";
 import { saveProfileFromCv } from "@/lib/repository";
 import type { CvAnalysis, MasterProfile } from "@/lib/types";
 
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+// Vercel limita el cuerpo de cada petición a 4,5 MB.
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const TEXT_TYPES = new Set(["text/plain", "text/markdown", ""]);
 
 export type AnalyzeCvState =
@@ -20,7 +21,8 @@ async function readCvInput(formData: FormData): Promise<CvInput | string> {
 	const text = formData.get("text");
 
 	if (file instanceof File && file.size > 0) {
-		if (file.size > MAX_FILE_BYTES) return "El archivo supera los 8 MB.";
+		if (file.size > MAX_FILE_BYTES)
+			return "El archivo supera los 4 MB. Exporta el PDF más liviano o pega el texto.";
 		const isPdf =
 			file.type === "application/pdf" ||
 			file.name.toLowerCase().endsWith(".pdf");

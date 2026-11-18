@@ -3,6 +3,9 @@ import { tailorResume } from "@/lib/ai";
 import { badRequest, readJson, serverError, withAuth } from "@/lib/http";
 import type { MasterProfile } from "@/lib/types";
 
+// Las llamadas a Gemini pueden tardar; Vercel corta en el límite indicado.
+export const maxDuration = 300;
+
 export const POST = withAuth(async (request: Request) => {
 	try {
 		const { jobTitle, company, jobText, profile } = await readJson(request);

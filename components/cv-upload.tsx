@@ -116,7 +116,7 @@ export function CvUpload({
 							<TabsTrigger value="text">Pegar texto</TabsTrigger>
 						</TabsList>
 						<TabsContent value="file" keepMounted className="grid gap-2 pt-2">
-							<Label htmlFor="cv-file">PDF, .txt o .md (máx. 8 MB)</Label>
+							<Label htmlFor="cv-file">PDF, .txt o .md (máx. 4 MB)</Label>
 							<Input
 								id="cv-file"
 								name="file"

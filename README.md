@@ -57,6 +57,16 @@ Toda la app (páginas y API) exige iniciar sesión con la contraseña de `APP_PA
 | [`lib/types.ts`](lib/types.ts) | Tipos de dominio |
 | [`app/api/`](app/api) | Rutas REST: `profile`, `applications`, `scrape-job` y `gemini/*` |
 
+### Desplegar en Vercel (para usarla desde el celular)
+
+1. En Vercel: **Add New → Project** e importa este repositorio.
+2. En **Settings → Git**, define como *Production Branch* la rama que quieras publicar.
+3. En **Storage**, conecta tu base Prisma Postgres al proyecto: Vercel inyecta `POSTGRES_URL` y `PRISMA_DATABASE_URL` (la app usa la primera que encuentre).
+4. En **Settings → Environment Variables** agrega `GEMINI_API_KEY`, `APP_PASSWORD` y `AUTH_SECRET`.
+5. Despliega. El script `vercel-build` aplica las migraciones pendientes antes de compilar.
+
+Notas: Vercel limita cada petición a 4,5 MB (por eso el CV en PDF admite hasta 4 MB) y las rutas de IA permiten hasta 300 s.
+
 ### Base de datos (Prisma 8)
 
 - El contrato de datos vive en [`src/prisma/contract.ts`](src/prisma/contract.ts) y el cliente en [`src/prisma/db.ts`](src/prisma/db.ts).
