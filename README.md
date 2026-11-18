@@ -21,6 +21,7 @@ pnpm install
 
 # 2. Variables de entorno (DATABASE_URL apunta al Postgres de docker-compose)
 cp .env.example .env
+#    y agrega tu GEMINI_API_KEY en .env
 
 # 3. Levantar PostgreSQL en Docker
 pnpm db:up
@@ -32,12 +33,23 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000): verás un ejemplo de usuarios y posts que lee y escribe en la base de datos con Server Actions.
+Abre [http://localhost:3000](http://localhost:3000): verás el estado del backend de JustWork (perfil maestro, postulaciones y rutas API). La primera carga siembra datos de demostración.
+
+### Backend de JustWork
+
+| Archivo | Qué hace |
+|---|---|
+| [`lib/repository.ts`](lib/repository.ts) | Acceso a datos: perfil maestro, postulaciones, siembra y reinicio |
+| [`lib/ai.ts`](lib/ai.ts) | Prompts y esquemas de Gemini: evaluar vacante, adaptar CV, responder preguntas, leer CV |
+| [`lib/gemini.ts`](lib/gemini.ts) | Cliente de Gemini con reintentos ante 503 |
+| [`lib/scraper.ts`](lib/scraper.ts) | Extrae el texto de una vacante desde una URL (Jina Reader + fetch directo) |
+| [`lib/app-context.tsx`](lib/app-context.tsx) | Estado de cliente (`AppProvider` / `useApp`) con mutaciones optimistas contra `/api` |
+| [`lib/types.ts`](lib/types.ts) · [`lib/seed-data.ts`](lib/seed-data.ts) | Tipos de dominio y datos de demostración |
+| [`app/api/`](app/api) | Rutas REST: `profile`, `applications`, `scrape-job` y `gemini/*` |
 
 ### Base de datos (Prisma 8)
 
 - El contrato de datos vive en [`src/prisma/contract.ts`](src/prisma/contract.ts) y el cliente en [`src/prisma/db.ts`](src/prisma/db.ts).
-- Las consultas de la página están en [`lib/data.ts`](lib/data.ts) y las mutaciones en [`app/actions.ts`](app/actions.ts).
 
 Flujo para cambiar el modelo:
 

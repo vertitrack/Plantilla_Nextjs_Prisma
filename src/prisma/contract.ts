@@ -1,23 +1,63 @@
 import { defineContract } from "@prisma/orm-postgres/contract-builder";
 
-export const contract = defineContract({}, ({ field, model, rel }) => {
-	const User = model("User", {
+export const contract = defineContract({}, ({ field, model }) => {
+	// Perfil maestro del candidato: la fuente de verdad (RAG) para la IA.
+	const MasterProfile = model("MasterProfile", {
 		fields: {
 			id: field.id.uuidv7String(),
-			email: field.text().unique(),
-			username: field.text().optional(),
-			name: field.text().optional(),
+			fullName: field.text(),
+			headline: field.text(),
+			email: field.text(),
+			phone: field.text(),
+			location: field.text(),
+			portfolioUrl: field.text().optional(),
+			linkedinUrl: field.text().optional(),
+			githubUrl: field.text().optional(),
+			summary: field.text(),
+			targetSalary: field.text().optional(),
+			targetRoles: field.json(),
+			skills: field.json(),
+			experiences: field.json(),
+			projects: field.json(),
+			education: field.json(),
 			createdAt: field.temporal.createdAtString(),
 			updatedAt: field.temporal.updatedAtString(),
 		},
 	});
 
-	const Post = model("Post", {
+	// Vacante investigada + evaluación, CV adaptado y respuestas generadas.
+	const JobApplication = model("JobApplication", {
 		fields: {
 			id: field.id.uuidv7String(),
 			title: field.text(),
-			content: field.text().optional(),
-			authorId: field.uuidString(),
+			company: field.text(),
+			location: field.text(),
+			url: field.text().optional(),
+			sourceText: field.text(),
+			salaryRange: field.text().optional(),
+			workType: field.text().optional(),
+			status: field.text(),
+			dateAdded: field.text(),
+			dateApplied: field.text().optional(),
+			fitScore: field.int().optional(),
+			recommendation: field.text().optional(),
+			recommendationHeadline: field.text().optional(),
+			reasoning: field.text().optional(),
+			matchingSkills: field.json(),
+			missingSkills: field.json(),
+			pros: field.json(),
+			cons: field.json(),
+			interviewTips: field.json(),
+			estimatedSeniority: field.text().optional(),
+			tailoredHeadline: field.text().optional(),
+			tailoredSummary: field.text().optional(),
+			tailoredResumeMarkdown: field.text().optional(),
+			tailoredCoverLetterMarkdown: field.text().optional(),
+			atsKeywordsIncluded: field.json(),
+			keyPitchAngle: field.text().optional(),
+			qaPairs: field.json(),
+			notes: field.text().optional(),
+			outcomeReason: field.text().optional(),
 			createdAt: field.temporal.createdAtString(),
 			updatedAt: field.temporal.updatedAtString(),
 		},
@@ -25,12 +65,8 @@ export const contract = defineContract({}, ({ field, model, rel }) => {
 
 	return {
 		models: {
-			User: User.relations({
-				posts: rel.hasMany(Post, { by: "authorId" }),
-			}),
-			Post: Post.relations({
-				author: rel.belongsTo(User, { from: "authorId", to: "id" }),
-			}),
+			MasterProfile,
+			JobApplication,
 		},
 	};
 });

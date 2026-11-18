@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Plantilla Next.js + Prisma",
-	description: "Plantilla de Next.js 16 con Prisma 8, PostgreSQL y shadcn/ui",
+	title: "JustWork",
+	description:
+		"Copiloto de búsqueda de empleo con IA: evalúa vacantes, adapta tu CV y responde formularios.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
