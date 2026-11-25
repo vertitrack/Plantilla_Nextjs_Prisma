@@ -6,7 +6,9 @@ import type {
 	JobEvaluation,
 	MasterProfile,
 	QAPair,
+	QuestionCategory,
 	ScrapedJob,
+	StageType,
 	TailoredResume,
 } from "@/lib/types";
 
@@ -49,6 +51,30 @@ export const answerQuestions = (
 		jobTitle: job.title,
 		company: job.company,
 		jobText: job.sourceText,
+	});
+
+export interface PredictedQuestion {
+	question: string;
+	category: QuestionCategory;
+	hint: string;
+}
+
+export const predictInterviewQuestions = (
+	profile: MasterProfile,
+	job: JobRef,
+	stage: {
+		name: string;
+		type: StageType;
+		pastQuestions: string[];
+		existing: string[];
+	},
+) =>
+	post<{ questions: PredictedQuestion[] }>("/api/gemini/predict-questions", {
+		profile,
+		jobTitle: job.title,
+		company: job.company,
+		jobText: job.sourceText,
+		stage,
 	});
 
 /** Mensaje amigable para errores de IA (sobrecarga, red, etc.). */

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "column.public.JobApplication.interviewStages",
+    "label": "Add column \"interviewStages\" to \"JobApplication\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "interviewStages",
+        "table": "JobApplication"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"interviewStages\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "interviewStages"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"interviewStages\"",
+        "sql": "ALTER TABLE \"public\".\"JobApplication\" ADD COLUMN \"interviewStages\" jsonb"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"interviewStages\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "interviewStages"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.JobApplication.nextAction",
+    "label": "Add column \"nextAction\" to \"JobApplication\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextAction",
+        "table": "JobApplication"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextAction\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "nextAction"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"nextAction\"",
+        "sql": "ALTER TABLE \"public\".\"JobApplication\" ADD COLUMN \"nextAction\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextAction\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "nextAction"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.JobApplication.nextActionAt",
+    "label": "Add column \"nextActionAt\" to \"JobApplication\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "nextActionAt",
+        "table": "JobApplication"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"nextActionAt\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "nextActionAt"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"nextActionAt\"",
+        "sql": "ALTER TABLE \"public\".\"JobApplication\" ADD COLUMN \"nextActionAt\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"nextActionAt\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "JobApplication",
+          "nextActionAt"
+        ]
+      }
+    ]
+  }
+]

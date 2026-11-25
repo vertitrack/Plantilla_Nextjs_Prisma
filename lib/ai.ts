@@ -6,6 +6,8 @@ import type {
 	JobEvaluation,
 	MasterProfile,
 	QAPair,
+	QuestionCategory,
+	StageType,
 	TailoredResume,
 	WorkType,
 } from "@/lib/types";
@@ -179,6 +181,104 @@ ${job.jobText.slice(0, 10000)}`;
 			"atsKeywordsIncluded",
 			"keyPitchAngle",
 		],
+	});
+}
+
+const STAGE_TYPE_HINTS: Record<StageType, string> = {
+	screening:
+		"screening inicial con reclutador/RR.HH. (motivación, expectativas, disponibilidad)",
+	technical:
+		"entrevista técnica (conocimientos, resolución de problemas, diseño de sistemas)",
+	take_home:
+		"revisión de prueba técnica o desafío para la casa (decisiones y trade-offs)",
+	behavioral: "entrevista conductual / por competencias (método STAR)",
+	culture: "entrevista de fit cultural y valores con el equipo",
+	final:
+		"entrevista final con gerencia o liderazgo (visión, impacto, negociación)",
+	other: "etapa del proceso de selección",
+};
+
+export interface PredictStageContext {
+	name: string;
+	type: StageType;
+	/** Preguntas reales que ya me hicieron en otras vacantes similares. */
+	pastQuestions?: string[];
+	/** Preguntas ya registradas en esta etapa (para no repetirlas). */
+	existing?: string[];
+}
+
+/** Predice las preguntas más probables para una etapa de entrevista. */
+export function predictInterviewQuestions(
+	profile: MasterProfile,
+	job: JobContext,
+	stage: PredictStageContext,
+) {
+	const prompt = `Eres un entrevistador experto y coach de entrevistas.
+Predice las 6 a 8 preguntas MÁS PROBABLES que le harán al candidato en la siguiente etapa del proceso de selección.
+
+Etapa: "${stage.name}" — ${STAGE_TYPE_HINTS[stage.type]}
+
+NORMAS:
+- Las preguntas deben ser específicas para ESTA vacante (tecnologías, responsabilidades, industria de la empresa) y para las brechas o puntos fuertes del perfil del candidato.
+- Mezcla preguntas que exploren sus fortalezas y otras que indaguen en sus posibles debilidades frente a los requisitos.
+- No repitas preguntas ya registradas.
+- Si hay preguntas reales de procesos anteriores similares, úsalas como señal de lo que suele preguntarse.
+- Para cada pregunta, da una pista breve (1-2 frases) de cómo responderla apoyándose en experiencia real del perfil.
+- Escribe en español.
+
+[PERFIL DEL CANDIDATO]:
+Titular: ${profile.headline}
+Resumen: ${profile.summary}
+Habilidades: ${JSON.stringify(profile.skills)}
+Experiencia:
+${profile.experiences?.map((e) => `- ${e.role} en ${e.company} (${e.period}): ${e.highlights?.join("; ")}`).join("\n")}
+Proyectos:
+${profile.projects?.map((p) => `- ${p.name}: ${p.description}`).join("\n")}
+
+[VACANTE]:
+Puesto: ${job.jobTitle || "No especificado"}
+Empresa: ${job.company || "No especificada"}
+${job.jobText.slice(0, 8000)}
+
+[PREGUNTAS YA REGISTRADAS EN ESTA ETAPA]:
+${stage.existing?.length ? stage.existing.map((q) => `- ${q}`).join("\n") : "Ninguna"}
+
+[PREGUNTAS REALES DE PROCESOS ANTERIORES SIMILARES]:
+${
+	stage.pastQuestions?.length
+		? stage.pastQuestions
+				.slice(0, 40)
+				.map((q) => `- ${q}`)
+				.join("\n")
+		: "Ninguna"
+}`;
+
+	return generateJson<{
+		questions: { question: string; category: QuestionCategory; hint: string }[];
+	}>(prompt, {
+		type: Type.OBJECT,
+		properties: {
+			questions: {
+				type: Type.ARRAY,
+				items: {
+					type: Type.OBJECT,
+					properties: {
+						question: { type: Type.STRING },
+						category: {
+							type: Type.STRING,
+							enum: ["technical", "behavioral", "company", "salary", "other"],
+						},
+						hint: {
+							type: Type.STRING,
+							description:
+								"Cómo responderla usando experiencia real del perfil",
+						},
+					},
+					required: ["question", "category", "hint"],
+				},
+			},
+		},
+		required: ["questions"],
 	});
 }
 

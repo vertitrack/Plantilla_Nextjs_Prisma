@@ -85,6 +85,13 @@
                   }
                 }
               },
+              "interviewStages": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
               "interviewTips": {
                 "nullable": false,
                 "type": {
@@ -117,6 +124,20 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/jsonb@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextAction": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextActionAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -277,6 +298,9 @@
                 "id": {
                   "column": "id"
                 },
+                "interviewStages": {
+                  "column": "interviewStages"
+                },
                 "interviewTips": {
                   "column": "interviewTips"
                 },
@@ -291,6 +315,12 @@
                 },
                 "missingSkills": {
                   "column": "missingSkills"
+                },
+                "nextAction": {
+                  "column": "nextAction"
+                },
+                "nextActionAt": {
+                  "column": "nextActionAt"
                 },
                 "notes": {
                   "column": "notes"
@@ -628,6 +658,11 @@
                     "length": 36
                   }
                 },
+                "interviewStages": {
+                  "codecId": "pg/jsonb@1",
+                  "nativeType": "jsonb",
+                  "nullable": true
+                },
                 "interviewTips": {
                   "codecId": "pg/jsonb@1",
                   "nativeType": "jsonb",
@@ -652,6 +687,16 @@
                   "codecId": "pg/jsonb@1",
                   "nativeType": "jsonb",
                   "nullable": false
+                },
+                "nextAction": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "nextActionAt": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "notes": {
                   "codecId": "pg/text@1",
@@ -878,7 +923,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8bef07bebcd39bcfbb627640e8a9f22c23d5d030a2401210b1a0f563078e9a79"
+    "storageHash": "5b8f49cd4476c2e9429e6aaa96d1974953bfb28be2b740b40145bd5f53afddf8"
   },
   "execution": {
     "executionHash": "90386f876de27eda31d8091195fd8ab5d5c85dc58b634ff0610e0fc2d622c642",

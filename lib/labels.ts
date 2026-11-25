@@ -1,4 +1,11 @@
-import type { JobStatus, RecommendationType, WorkType } from "@/lib/types";
+import type {
+	JobStatus,
+	QuestionCategory,
+	RecommendationType,
+	StageStatus,
+	StageType,
+	WorkType,
+} from "@/lib/types";
 
 /** Columnas del tablero (Rechazado y Descartado comparten la última). */
 export const BOARD_COLUMNS: {
@@ -65,3 +72,43 @@ export function fitColor(score?: number) {
 	if (score >= 50) return "text-amber-600 dark:text-amber-400";
 	return "text-destructive";
 }
+
+export const STAGE_TYPE_LABELS: Record<StageType, string> = {
+	screening: "Screening / RR.HH.",
+	technical: "Técnica",
+	take_home: "Prueba técnica",
+	behavioral: "Conductual",
+	culture: "Fit cultural",
+	final: "Final / Gerencia",
+	other: "Otra",
+};
+
+export const STAGE_STATUS_LABELS: Record<StageStatus, string> = {
+	pending: "Pendiente",
+	scheduled: "Agendada",
+	done: "Realizada",
+	passed: "Aprobada",
+	failed: "No avancé",
+	cancelled: "Cancelada",
+};
+
+export function stageStatusVariant(s: StageStatus) {
+	if (s === "passed") return "default" as const;
+	if (s === "failed") return "destructive" as const;
+	if (s === "scheduled") return "secondary" as const;
+	return "outline" as const;
+}
+
+export const QUESTION_CATEGORY_LABELS: Record<QuestionCategory, string> = {
+	technical: "Técnica",
+	behavioral: "Conductual",
+	company: "Empresa / motivación",
+	salary: "Salario / condiciones",
+	other: "Otra",
+};
+
+export const RATING_LABELS: Record<1 | 2 | 3, string> = {
+	1: "Me fue mal",
+	2: "Regular",
+	3: "Me fue bien",
+};

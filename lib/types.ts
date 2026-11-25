@@ -97,6 +97,65 @@ export const RECOMMENDATIONS = [
 ] as const;
 export type RecommendationType = (typeof RECOMMENDATIONS)[number];
 
+export const STAGE_TYPES = [
+	"screening",
+	"technical",
+	"take_home",
+	"behavioral",
+	"culture",
+	"final",
+	"other",
+] as const;
+export type StageType = (typeof STAGE_TYPES)[number];
+
+export const STAGE_STATUSES = [
+	"pending",
+	"scheduled",
+	"done",
+	"passed",
+	"failed",
+	"cancelled",
+] as const;
+export type StageStatus = (typeof STAGE_STATUSES)[number];
+
+export const QUESTION_CATEGORIES = [
+	"technical",
+	"behavioral",
+	"company",
+	"salary",
+	"other",
+] as const;
+export type QuestionCategory = (typeof QUESTION_CATEGORIES)[number];
+
+export const QUESTION_SOURCES = ["asked", "predicted"] as const;
+export type QuestionSource = (typeof QUESTION_SOURCES)[number];
+
+/** Pregunta de una etapa: real (me la hicieron) o predicha por la IA. */
+export interface InterviewQuestion {
+	id: string;
+	question: string;
+	source: QuestionSource;
+	category?: QuestionCategory;
+	/** Lo que respondí (o quiero responder). */
+	myAnswer?: string;
+	notes?: string;
+	/** Autoevaluación: 1 = mal, 2 = regular, 3 = bien. */
+	rating?: 1 | 2 | 3;
+}
+
+/** Una etapa del proceso de selección (screening, técnica, final...). */
+export interface InterviewStage {
+	id: string;
+	name: string;
+	type: StageType;
+	status: StageStatus;
+	/** Fecha de la etapa (YYYY-MM-DD). */
+	date?: string;
+	interviewer?: string;
+	notes?: string;
+	questions: InterviewQuestion[];
+}
+
 export interface QAPair {
 	question: string;
 	answer: string;
@@ -135,6 +194,12 @@ export interface JobApplication {
 	qaPairs: QAPair[];
 	notes?: string;
 	outcomeReason?: string;
+	/** Próxima acción de seguimiento (p. ej. "Escribir al reclutador"). */
+	nextAction?: string;
+	/** Fecha de la próxima acción (YYYY-MM-DD). */
+	nextActionAt?: string;
+	/** Etapas del proceso de entrevista, en orden. */
+	interviewStages: InterviewStage[];
 }
 
 /** Datos que devuelve la evaluación de una vacante con IA. */

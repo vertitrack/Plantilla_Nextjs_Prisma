@@ -61,6 +61,12 @@ export const contract = defineContract({}, ({ field, model }) => {
 			qaPairs: field.json(),
 			notes: field.text().optional(),
 			outcomeReason: field.text().optional(),
+			// Seguimiento: próxima acción y su fecha (YYYY-MM-DD).
+			nextAction: field.text().optional(),
+			nextActionAt: field.text().optional(),
+			// Proceso de entrevista: etapas con las preguntas que me hicieron.
+			// Opcional (NULL = sin etapas) para no requerir backfill en filas existentes.
+			interviewStages: field.json().optional(),
 			createdAt: field.temporal.createdAtString(),
 			updatedAt: field.temporal.updatedAtString(),
 		},
