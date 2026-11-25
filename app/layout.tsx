@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -18,6 +18,18 @@ export const metadata: Metadata = {
 	title: "JustWork",
 	description:
 		"Copiloto de búsqueda de empleo con IA: evalúa vacantes, adapta tu CV y responde formularios.",
+	appleWebApp: { capable: true, title: "JustWork", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	// Permite usar env(safe-area-inset-*) en iPhone con notch / barra inferior.
+	viewportFit: "cover",
+	themeColor: [
+		{ media: "(prefers-color-scheme: light)", color: "#ffffff" },
+		{ media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+	],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -35,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 					disableTransitionOnChange
 				>
 					{children}
-					<Toaster richColors />
+					<Toaster richColors position="top-center" />
 				</ThemeProvider>
 			</body>
 		</html>

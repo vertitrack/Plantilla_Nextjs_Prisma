@@ -117,6 +117,7 @@ export default function InvestigatePage() {
 			reasoning: evaluation?.reasoning,
 			estimatedSeniority: evaluation?.estimatedSeniority,
 			qaPairs: [],
+			interviewStages: [],
 		});
 		setSaving(false);
 		if (!saved) return;

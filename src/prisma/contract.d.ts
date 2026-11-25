@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8bef07bebcd39bcfbb627640e8a9f22c23d5d030a2401210b1a0f563078e9a79'>;
+  StorageHashBase<'5b8f49cd4476c2e9429e6aaa96d1974953bfb28be2b740b40145bd5f53afddf8'>;
 export type ExecutionHash =
   ExecutionHashBase<'90386f876de27eda31d8091195fd8ab5d5c85dc58b634ff0610e0fc2d622c642'>;
 export type ProfileHash =
@@ -272,6 +272,9 @@ export type FieldOutputTypes = {
       readonly qaPairs: CodecTypes['pg/jsonb@1']['output'];
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly outcomeReason: CodecTypes['pg/text@1']['output'] | null;
+      readonly nextAction: CodecTypes['pg/text@1']['output'] | null;
+      readonly nextActionAt: CodecTypes['pg/text@1']['output'] | null;
+      readonly interviewStages: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
@@ -332,6 +335,9 @@ export type FieldInputTypes = {
       readonly qaPairs: CodecTypes['pg/jsonb@1']['input'];
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly outcomeReason: CodecTypes['pg/text@1']['input'] | null;
+      readonly nextAction: CodecTypes['pg/text@1']['input'] | null;
+      readonly nextActionAt: CodecTypes['pg/text@1']['input'] | null;
+      readonly interviewStages: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
@@ -371,11 +377,14 @@ export type StorageColumnTypes = {
       readonly estimatedSeniority: CodecTypes['pg/text@1']['output'] | null;
       readonly fitScore: CodecTypes['pg/int4@1']['output'] | null;
       readonly id: Char<36>;
+      readonly interviewStages: CodecTypes['pg/jsonb@1']['output'] | null;
       readonly interviewTips: CodecTypes['pg/jsonb@1']['output'];
       readonly keyPitchAngle: CodecTypes['pg/text@1']['output'] | null;
       readonly location: CodecTypes['pg/text@1']['output'];
       readonly matchingSkills: CodecTypes['pg/jsonb@1']['output'];
       readonly missingSkills: CodecTypes['pg/jsonb@1']['output'];
+      readonly nextAction: CodecTypes['pg/text@1']['output'] | null;
+      readonly nextActionAt: CodecTypes['pg/text@1']['output'] | null;
       readonly notes: CodecTypes['pg/text@1']['output'] | null;
       readonly outcomeReason: CodecTypes['pg/text@1']['output'] | null;
       readonly pros: CodecTypes['pg/jsonb@1']['output'];
@@ -431,11 +440,14 @@ export type StorageColumnInputTypes = {
       readonly estimatedSeniority: CodecTypes['pg/text@1']['input'] | null;
       readonly fitScore: CodecTypes['pg/int4@1']['input'] | null;
       readonly id: CodecTypes['sql/char@1']['input'];
+      readonly interviewStages: CodecTypes['pg/jsonb@1']['input'] | null;
       readonly interviewTips: CodecTypes['pg/jsonb@1']['input'];
       readonly keyPitchAngle: CodecTypes['pg/text@1']['input'] | null;
       readonly location: CodecTypes['pg/text@1']['input'];
       readonly matchingSkills: CodecTypes['pg/jsonb@1']['input'];
       readonly missingSkills: CodecTypes['pg/jsonb@1']['input'];
+      readonly nextAction: CodecTypes['pg/text@1']['input'] | null;
+      readonly nextActionAt: CodecTypes['pg/text@1']['input'] | null;
       readonly notes: CodecTypes['pg/text@1']['input'] | null;
       readonly outcomeReason: CodecTypes['pg/text@1']['input'] | null;
       readonly pros: CodecTypes['pg/jsonb@1']['input'];
@@ -648,6 +660,21 @@ type ContractBase = Omit<
                 readonly outcomeReason: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly nextAction: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly nextActionAt: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly interviewStages: {
+                  readonly nativeType: 'jsonb';
+                  readonly codecId: 'pg/jsonb@1';
                   readonly nullable: true;
                 };
                 readonly createdAt: {
@@ -927,6 +954,18 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly nextAction: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly nextActionAt: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly interviewStages: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/jsonb@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -979,6 +1018,9 @@ type ContractBase = Omit<
                 readonly qaPairs: { readonly column: 'qaPairs' };
                 readonly notes: { readonly column: 'notes' };
                 readonly outcomeReason: { readonly column: 'outcomeReason' };
+                readonly nextAction: { readonly column: 'nextAction' };
+                readonly nextActionAt: { readonly column: 'nextActionAt' };
+                readonly interviewStages: { readonly column: 'interviewStages' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };

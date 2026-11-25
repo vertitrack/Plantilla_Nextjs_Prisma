@@ -1,4 +1,10 @@
-import type { JobApplication, JobStatus, WorkType } from "@/lib/types";
+import type {
+	JobApplication,
+	JobStatus,
+	QuestionCategory,
+	StageType,
+	WorkType,
+} from "@/lib/types";
 
 // Métricas de "qué funciona y qué no", calculadas sobre tus postulaciones.
 
@@ -91,3 +97,36 @@ export function computeAnalytics(apps: JobApplication[]) {
 }
 
 export type Analytics = ReturnType<typeof computeAnalytics>;
+
+/** Métricas de los procesos de entrevista registrados. */
+export function interviewAnalytics(apps: JobApplication[]) {
+	const withStages = apps.filter((a) => a.interviewStages?.length);
+	const stages = withStages.flatMap((a) => a.interviewStages);
+	const questions = stages.flatMap((s) => s.questions ?? []);
+	const asked = questions.filter((q) => q.source === "asked");
+
+	// Tipo de etapa en la que más veces "no avancé".
+	const failedBy = new Map<StageType, number>();
+	for (const s of stages) {
+		if (s.status === "failed") {
+			failedBy.set(s.type, (failedBy.get(s.type) ?? 0) + 1);
+		}
+	}
+	const byCategory = new Map<QuestionCategory, number>();
+	for (const q of asked) {
+		if (q.category) {
+			byCategory.set(q.category, (byCategory.get(q.category) ?? 0) + 1);
+		}
+	}
+
+	return {
+		processes: withStages.length,
+		avgStages: withStages.length
+			? Math.round((stages.length / withStages.length) * 10) / 10
+			: undefined,
+		askedCount: asked.length,
+		badAnswers: asked.filter((q) => q.rating === 1).length,
+		failedByStage: [...failedBy.entries()].sort((a, b) => b[1] - a[1]),
+		topCategories: [...byCategory.entries()].sort((a, b) => b[1] - a[1]),
+	};
+}

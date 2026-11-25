@@ -3,12 +3,18 @@ import type { Char, JsonValue } from "@prisma/orm-postgres/target/codec-types";
 import {
 	type CvAnalysis,
 	emptyProfile,
+	type InterviewQuestion,
+	type InterviewStage,
 	JOB_STATUSES,
 	type JobApplication,
 	type JobStatus,
 	type MasterProfile,
+	QUESTION_CATEGORIES,
+	QUESTION_SOURCES,
 	RECOMMENDATIONS,
 	type RecommendationType,
+	STAGE_STATUSES,
+	STAGE_TYPES,
 	WORK_TYPES,
 	type WorkType,
 } from "@/lib/types";
@@ -59,6 +65,58 @@ const oneOf = <T extends string>(list: readonly T[], v: unknown) =>
 		: undefined;
 const int = (v: unknown) =>
 	typeof v === "number" && Number.isFinite(v) ? Math.round(v) : undefined;
+
+const isObj = (v: unknown): v is Body =>
+	typeof v === "object" && v !== null && !Array.isArray(v);
+const clip = (v: unknown, max: number) => str(v)?.slice(0, max) || undefined;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const date = (v: unknown) => {
+	const s = str(v);
+	return s && DATE_RE.test(s) ? s : undefined;
+};
+const newId = () => crypto.randomUUID();
+
+function sanitizeQuestion(v: unknown): InterviewQuestion | null {
+	if (!isObj(v)) return null;
+	const question = clip(v.question, 2000);
+	if (!question) return null;
+	const rating = int(v.rating);
+	return {
+		id: clip(v.id, 64) ?? newId(),
+		question,
+		source: oneOf(QUESTION_SOURCES, v.source) ?? "asked",
+		category: oneOf(QUESTION_CATEGORIES, v.category),
+		myAnswer: clip(v.myAnswer, 10000),
+		notes: clip(v.notes, 5000),
+		rating: rating === 1 || rating === 2 || rating === 3 ? rating : undefined,
+	};
+}
+
+/** Sanea las etapas de entrevista que llegan del cliente (no confiable). */
+export function sanitizeStages(v: unknown): InterviewStage[] {
+	if (!Array.isArray(v)) return [];
+	return v.slice(0, 30).flatMap((s): InterviewStage[] => {
+		if (!isObj(s)) return [];
+		const questions = Array.isArray(s.questions)
+			? s.questions
+					.slice(0, 200)
+					.map(sanitizeQuestion)
+					.filter((q): q is InterviewQuestion => q !== null)
+			: [];
+		return [
+			{
+				id: clip(s.id, 64) ?? newId(),
+				name: clip(s.name, 200) ?? "Etapa",
+				type: oneOf(STAGE_TYPES, s.type) ?? "other",
+				status: oneOf(STAGE_STATUSES, s.status) ?? "pending",
+				date: date(s.date),
+				interviewer: clip(s.interviewer, 200),
+				notes: clip(s.notes, 10000),
+				questions,
+			},
+		];
+	});
+}
 
 // ---------- MasterProfile ----------
 
@@ -220,6 +278,9 @@ function rowToApplication(row: NonNullable<AppRow>): JobApplication {
 		qaPairs: fromJson<JobApplication["qaPairs"]>(row.qaPairs),
 		notes: undef(row.notes),
 		outcomeReason: undef(row.outcomeReason),
+		nextAction: undef(row.nextAction),
+		nextActionAt: undef(row.nextActionAt),
+		interviewStages: fromJson<InterviewStage[]>(row.interviewStages),
 	};
 }
 
@@ -251,8 +312,13 @@ function applicationPatch(body: Body) {
 		"keyPitchAngle",
 		"notes",
 		"outcomeReason",
+		"nextAction",
 	]) {
 		set(key, str(body[key]));
+	}
+	set("nextActionAt", date(body.nextActionAt));
+	if ("interviewStages" in body) {
+		out.interviewStages = json(sanitizeStages(body.interviewStages));
 	}
 	for (const key of [
 		"matchingSkills",
@@ -291,6 +357,9 @@ function newApplicationRow(body: Body) {
 		keyPitchAngle: null,
 		notes: "",
 		outcomeReason: "",
+		nextAction: null,
+		nextActionAt: null,
+		interviewStages: json([]),
 		...applicationPatch(body),
 		// Valores por defecto para los campos obligatorios.
 		title: str(body.title) || "Nueva Vacante",
