@@ -6,6 +6,7 @@ import {
 	DownloadIcon,
 	ExternalLinkIcon,
 	FileTextIcon,
+	ListChecksIcon,
 	Loader2Icon,
 	MessageSquareTextIcon,
 	NotebookPenIcon,
@@ -25,6 +26,8 @@ import {
 	EvaluationView,
 	NoProfileWarning,
 } from "@/components/job/evaluation-view";
+import { InterviewProcess } from "@/components/job/interview-process";
+import { NextAction } from "@/components/job/next-action";
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -90,6 +93,21 @@ export function JobDetail({
 	const job = applications.find((a) => a.id === id);
 	const [tab, setTab] = useState(initialTab);
 
+	// En móvil las pestañas se desplazan en horizontal: muestra la activa.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: se re-ejecuta al cambiar de pestaña
+	useEffect(() => {
+		const el = document.querySelector(
+			'[data-slot="tabs-trigger"][data-active]',
+		);
+		const box = el?.closest("[data-tabs-scroll]");
+		if (!el || !box) return;
+		const offset =
+			el.getBoundingClientRect().left - box.getBoundingClientRect().left;
+		if (offset < 0 || offset + el.clientWidth > box.clientWidth) {
+			box.scrollLeft += offset - 16;
+		}
+	}, [tab, Boolean(job)]);
+
 	const save = useCallback(
 		(patch: Partial<JobApplication>) => updateApplication(id, patch),
 		[id, updateApplication],
@@ -122,7 +140,7 @@ export function JobDetail({
 		.join(" · ");
 
 	return (
-		<div className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-8 sm:px-6">
+		<div className="mx-auto grid w-full max-w-5xl gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-8">
 			<div className="grid gap-4">
 				<Link
 					href="/"
@@ -132,7 +150,7 @@ export function JobDetail({
 				</Link>
 				<div className="flex flex-wrap items-start justify-between gap-4">
 					<div className="grid min-w-0 gap-1">
-						<h1 className="font-heading font-semibold text-2xl tracking-tight">
+						<h1 className="font-heading font-semibold text-xl tracking-tight sm:text-2xl">
 							{job.title}
 						</h1>
 						<p className="text-muted-foreground text-sm">{meta}</p>
@@ -164,7 +182,7 @@ export function JobDetail({
 							) : null}
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
+					<div className="flex w-full items-center gap-2 sm:w-auto">
 						<Select
 							items={STATUS_ITEMS}
 							value={job.status}
@@ -173,7 +191,10 @@ export function JobDetail({
 								toast.success(`Estado: ${STATUS_LABELS[v as JobStatus]}`);
 							}}
 						>
-							<SelectTrigger className="w-44" aria-label="Estado">
+							<SelectTrigger
+								className="flex-1 sm:w-44 sm:flex-none"
+								aria-label="Estado"
+							>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -199,25 +220,46 @@ export function JobDetail({
 						</Button>
 					</div>
 				</div>
+
+				{job.status !== "rejected" && job.status !== "passed" ? (
+					<NextAction job={job} save={save} />
+				) : null}
 			</div>
 
 			{!hasProfile ? <NoProfileWarning /> : null}
 
-			<Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
-				<TabsList className="flex h-auto w-full flex-wrap justify-start">
-					<TabsTrigger value="evaluation">
-						<SparklesIcon /> Evaluación
-					</TabsTrigger>
-					<TabsTrigger value="tailor">
-						<FileTextIcon /> CV y carta
-					</TabsTrigger>
-					<TabsTrigger value="qa">
-						<MessageSquareTextIcon /> Preguntas
-					</TabsTrigger>
-					<TabsTrigger value="log">
-						<NotebookPenIcon /> Bitácora
-					</TabsTrigger>
-				</TabsList>
+			<Tabs
+				value={tab}
+				onValueChange={(v) => setTab(String(v))}
+				className="min-w-0"
+			>
+				<div
+					data-tabs-scroll
+					className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+				>
+					<TabsList className="w-max min-w-full justify-start sm:w-full">
+						<TabsTrigger value="evaluation">
+							<SparklesIcon /> Evaluación
+						</TabsTrigger>
+						<TabsTrigger value="tailor">
+							<FileTextIcon /> CV y carta
+						</TabsTrigger>
+						<TabsTrigger value="qa">
+							<MessageSquareTextIcon /> Preguntas
+						</TabsTrigger>
+						<TabsTrigger value="process">
+							<ListChecksIcon /> Proceso
+							{job.interviewStages?.length ? (
+								<span className="text-muted-foreground text-xs tabular-nums">
+									{job.interviewStages.length}
+								</span>
+							) : null}
+						</TabsTrigger>
+						<TabsTrigger value="log">
+							<NotebookPenIcon /> Bitácora
+						</TabsTrigger>
+					</TabsList>
+				</div>
 				<TabsContent value="evaluation" className="pt-3">
 					<EvaluationTab job={job} save={save} />
 				</TabsContent>
@@ -226,6 +268,9 @@ export function JobDetail({
 				</TabsContent>
 				<TabsContent value="qa" className="pt-3">
 					<QaTab job={job} save={save} />
+				</TabsContent>
+				<TabsContent value="process" className="pt-3">
+					<InterviewProcess job={job} save={save} />
 				</TabsContent>
 				<TabsContent value="log" className="pt-3">
 					<LogTab job={job} save={save} />

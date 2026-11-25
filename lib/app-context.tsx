@@ -11,6 +11,7 @@ import {
 	useState,
 } from "react";
 import { toast } from "sonner";
+import { addDays, newId } from "@/lib/followups";
 import {
 	type CvAnalysis,
 	emptyProfile,
@@ -180,9 +181,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 			);
 			if (id.startsWith("tmp-")) return;
 			try {
+				// JSON.stringify descarta `undefined`; lo enviamos como null para
+				// que borrar un campo (p. ej. una fecha) también llegue a la base.
+				const body = Object.fromEntries(
+					Object.entries(updated).map(([k, v]) => [k, v ?? null]),
+				);
 				await api(`/api/applications/${id}`, {
 					method: "PATCH",
-					body: JSON.stringify(updated),
+					body: JSON.stringify(body),
 				});
 			} catch (err) {
 				console.error("Error al actualizar la postulación:", err);
@@ -209,9 +215,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
 		async (id, status) => {
 			const updates: Partial<JobApplication> = { status };
 			const current = appsRef.current.find((a) => a.id === id);
-			// Al pasar a "Postulado" se registra la fecha del día.
-			if (status === "applied" && current && !current.dateApplied) {
-				updates.dateApplied = today();
+			// Al pasar a "Postulado" se registra la fecha del día y se agenda
+			// un seguimiento a 7 días si no había uno.
+			if (status === "applied" && current) {
+				if (!current.dateApplied) updates.dateApplied = today();
+				if (!current.nextActionAt) {
+					updates.nextAction = current.nextAction || "Hacer seguimiento";
+					updates.nextActionAt = addDays(7);
+				}
+			}
+			// Al pasar a "En entrevista" se crea la primera etapa del proceso.
+			if (
+				status === "interviewing" &&
+				current &&
+				!current.interviewStages?.length
+			) {
+				updates.interviewStages = [
+					{
+						id: newId(),
+						name: "Entrevista inicial",
+						type: "screening",
+						status: "pending",
+						questions: [],
+					},
+				];
 			}
 			await updateApplication(id, updates);
 		},

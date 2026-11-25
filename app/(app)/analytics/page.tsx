@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
+import { MessagesSquareIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PageHeader } from "@/components/app-shell";
@@ -20,9 +20,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { computeAnalytics } from "@/lib/analytics";
+import { computeAnalytics, interviewAnalytics } from "@/lib/analytics";
 import { useApp } from "@/lib/app-context";
-import { fitColor, STATUS_LABELS, WORK_TYPE_LABELS } from "@/lib/labels";
+import {
+	fitColor,
+	QUESTION_CATEGORY_LABELS,
+	STAGE_TYPE_LABELS,
+	STATUS_LABELS,
+	WORK_TYPE_LABELS,
+} from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 function Metric({
@@ -38,7 +44,9 @@ function Metric({
 		<Card size="sm">
 			<CardContent className="grid gap-1">
 				<p className="text-muted-foreground text-xs">{label}</p>
-				<p className="font-semibold text-3xl tabular-nums">{value}</p>
+				<p className="font-semibold text-2xl tabular-nums sm:text-3xl">
+					{value}
+				</p>
 				{hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
 			</CardContent>
 		</Card>
@@ -50,6 +58,7 @@ const pct = (n?: number) => (n === undefined ? "—" : `${n}%`);
 export default function AnalyticsPage() {
 	const { applications } = useApp();
 	const a = useMemo(() => computeAnalytics(applications), [applications]);
+	const ia = useMemo(() => interviewAnalytics(applications), [applications]);
 	const log = useMemo(
 		() =>
 			applications.filter(
@@ -93,13 +102,13 @@ export default function AnalyticsPage() {
 	}
 
 	return (
-		<div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-8 sm:px-6">
+		<div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-5 sm:gap-6 sm:px-6 sm:py-8">
 			<PageHeader
 				title="Analítica"
 				description="Qué te funciona y qué no, según tus postulaciones reales."
 			/>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+			<div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
 				<Metric
 					label="Postulaciones enviadas"
 					value={String(a.sent)}
@@ -202,6 +211,58 @@ export default function AnalyticsPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			{ia.processes ? (
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<MessagesSquareIcon className="size-4" />
+							Procesos de entrevista
+						</CardTitle>
+						<CardDescription>
+							Según las etapas y preguntas que registraste.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+							<Metric
+								label="Procesos registrados"
+								value={String(ia.processes)}
+							/>
+							<Metric
+								label="Etapas promedio"
+								value={ia.avgStages !== undefined ? String(ia.avgStages) : "—"}
+							/>
+							<Metric label="Preguntas reales" value={String(ia.askedCount)} />
+							<Metric
+								label="Por practicar"
+								value={String(ia.badAnswers)}
+								hint="Marcadas como “Me fue mal”"
+							/>
+						</div>
+						{ia.failedByStage.length ? (
+							<p className="text-sm">
+								Donde más se te caen los procesos:{" "}
+								<strong>{STAGE_TYPE_LABELS[ia.failedByStage[0][0]]}</strong> (
+								{ia.failedByStage[0][1]} vez/veces). Repasa esas preguntas en el{" "}
+								<Link href="/questions" className="underline">
+									banco de preguntas
+								</Link>
+								.
+							</p>
+						) : null}
+						{ia.topCategories.length ? (
+							<div className="flex flex-wrap gap-1.5">
+								{ia.topCategories.map(([c, n]) => (
+									<Badge key={c} variant="secondary">
+										{QUESTION_CATEGORY_LABELS[c]} · {n}
+									</Badge>
+								))}
+							</div>
+						) : null}
+					</CardContent>
+				</Card>
+			) : null}
 
 			<Card>
 				<CardHeader>
