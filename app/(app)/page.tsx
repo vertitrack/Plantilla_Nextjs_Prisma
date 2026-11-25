@@ -1,8 +1,10 @@
 "use client";
 
 import {
+	BellIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
+	ListFilterIcon,
 	PlusIcon,
 	SearchIcon,
 	SparklesIcon,
@@ -13,7 +15,21 @@ import { PageHeader } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet";
 import { useApp } from "@/lib/app-context";
+import {
+	DUE_LABELS,
+	dueState,
+	processSummary,
+	relativeDay,
+} from "@/lib/followups";
 import {
 	BOARD_COLUMNS,
 	fitColor,
@@ -94,6 +110,9 @@ function JobCard({ job }: { job: JobApplication }) {
 		if (next) updateStatus(job.id, next);
 	};
 
+	const due = dueState(job);
+	const process = processSummary(job.interviewStages);
+
 	return (
 		<article className="grid gap-2 rounded-lg border bg-card p-3 shadow-xs">
 			<Link
@@ -126,7 +145,30 @@ function JobCard({ job }: { job: JobApplication }) {
 				{job.status === "passed" ? (
 					<Badge variant="outline">Descartada</Badge>
 				) : null}
+				{process.total > 0 ? (
+					<Badge variant="secondary" className="text-[10px]">
+						Etapa {Math.max(process.current, 1)}/{process.total}
+					</Badge>
+				) : null}
 			</div>
+			{due && job.nextActionAt ? (
+				<p
+					className={cn(
+						"flex items-center gap-1 text-xs",
+						due === "overdue"
+							? "text-destructive"
+							: due === "today"
+								? "text-amber-600 dark:text-amber-400"
+								: "text-muted-foreground",
+					)}
+				>
+					<BellIcon className="size-3" />
+					<span className="truncate">
+						{job.nextAction || DUE_LABELS[due]} ·{" "}
+						{relativeDay(job.nextActionAt)}
+					</span>
+				</p>
+			) : null}
 			<div className="flex items-center justify-between gap-1 pt-1">
 				<Button
 					variant="ghost"
@@ -174,22 +216,63 @@ export default function BoardPage() {
 		[applications, query, work, fit],
 	);
 
+	const [mobileCol, setMobileCol] = useState<string | null>(null);
+	const activeFilters = (work !== "all" ? 1 : 0) + (fit !== 0 ? 1 : 0);
+	const columns = BOARD_COLUMNS.map((col) => ({
+		...col,
+		jobs: filtered.filter((a) => col.statuses.includes(a.status)),
+	}));
+	// En móvil, sin elección previa, abre la primera etapa que tenga vacantes.
+	const selected =
+		columns.find((c) => c.id === mobileCol) ??
+		columns.find((c) => c.jobs.length > 0) ??
+		columns[0];
+
+	const filters = (
+		<>
+			<Segmented
+				label="Modalidad"
+				value={work}
+				onChange={setWork}
+				options={[
+					{ value: "all", label: "Todos" },
+					{ value: "remote", label: "Remoto" },
+					{ value: "hybrid", label: "Híbrido" },
+				]}
+			/>
+			<Segmented
+				label="Afinidad"
+				value={fit}
+				onChange={setFit}
+				options={[
+					{ value: 0, label: "Cualquier fit" },
+					{ value: 75, label: "≥ 75%" },
+					{ value: 85, label: "≥ 85%" },
+				]}
+			/>
+		</>
+	);
+
 	return (
-		<div className="grid w-full gap-6 px-4 py-8 sm:px-6">
+		<div className="grid w-full gap-4 px-4 py-5 sm:gap-6 sm:px-6 sm:py-8">
 			<PageHeader
 				title="Tablero"
 				description={`${applications.length} vacantes en seguimiento`}
 				actions={
-					<Link href="/investigate" className={buttonVariants()}>
+					<Link
+						href="/investigate"
+						className={cn(buttonVariants(), "hidden lg:inline-flex")}
+					>
 						<PlusIcon /> Investigar vacante
 					</Link>
 				}
 			/>
 
-			<div className="flex flex-wrap items-center gap-3">
-				<div className="relative w-full sm:w-72">
+			<div className="flex flex-wrap items-center gap-2 sm:gap-3">
+				<div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
 					<SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
 					<Input
+						type="search"
 						aria-label="Buscar"
 						placeholder="Cargo, empresa o tecnología"
 						value={query}
@@ -197,26 +280,28 @@ export default function BoardPage() {
 						className="pl-8"
 					/>
 				</div>
-				<Segmented
-					label="Modalidad"
-					value={work}
-					onChange={setWork}
-					options={[
-						{ value: "all", label: "Todos" },
-						{ value: "remote", label: "Remoto" },
-						{ value: "hybrid", label: "Híbrido" },
-					]}
-				/>
-				<Segmented
-					label="Afinidad"
-					value={fit}
-					onChange={setFit}
-					options={[
-						{ value: 0, label: "Cualquier fit" },
-						{ value: 75, label: "≥ 75%" },
-						{ value: 85, label: "≥ 85%" },
-					]}
-				/>
+				<div className="hidden flex-wrap items-center gap-3 sm:flex">
+					{filters}
+				</div>
+				<Sheet>
+					<SheetTrigger
+						render={
+							<Button variant="outline" className="sm:hidden">
+								<ListFilterIcon />
+								Filtros{activeFilters ? ` (${activeFilters})` : ""}
+							</Button>
+						}
+					/>
+					<SheetContent side="bottom" className="pb-safe rounded-t-xl">
+						<SheetHeader>
+							<SheetTitle>Filtros</SheetTitle>
+							<SheetDescription>
+								Acota el tablero por modalidad y afinidad.
+							</SheetDescription>
+						</SheetHeader>
+						<div className="grid gap-4 px-4 pb-6">{filters}</div>
+					</SheetContent>
+				</Sheet>
 			</div>
 
 			{!isLoadingDb && applications.length === 0 ? (
@@ -231,13 +316,58 @@ export default function BoardPage() {
 					</Link>
 				</div>
 			) : (
-				<div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
-					<div className="grid min-w-max grid-flow-col auto-cols-[260px] gap-4">
-						{BOARD_COLUMNS.map((col) => {
-							const jobs = filtered.filter((a) =>
-								col.statuses.includes(a.status),
-							);
-							return (
+				<>
+					{/* Móvil: una columna a la vez con selector de etapa. */}
+					<div className="grid gap-3 md:hidden">
+						<div
+							role="tablist"
+							aria-label="Etapa"
+							className="scrollbar-none -mx-4 flex snap-x gap-2 overflow-x-auto px-4"
+						>
+							{columns.map((col) => (
+								<button
+									key={col.id}
+									type="button"
+									role="tab"
+									aria-selected={col.id === selected.id}
+									onClick={() => setMobileCol(col.id)}
+									className={cn(
+										"flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
+										col.id === selected.id
+											? "border-primary bg-primary text-primary-foreground"
+											: "text-muted-foreground",
+									)}
+								>
+									{col.title}
+									<span
+										className={cn(
+											"rounded-full px-1.5 text-xs tabular-nums",
+											col.id === selected.id
+												? "bg-primary-foreground/20"
+												: "bg-muted",
+										)}
+									>
+										{col.jobs.length}
+									</span>
+								</button>
+							))}
+						</div>
+						<section aria-label={selected.title} className="grid gap-3">
+							{selected.jobs.map((job) => (
+								<JobCard key={job.id} job={job} />
+							))}
+							{selected.jobs.length === 0 ? (
+								<p className="rounded-lg border border-dashed px-4 py-8 text-center text-muted-foreground text-sm">
+									Sin vacantes en {selected.title.toLowerCase()}
+								</p>
+							) : null}
+						</section>
+					</div>
+
+					{/* Escritorio / tablet: kanban completo. */}
+					<div className="-mx-4 hidden overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 md:block">
+						<div className="grid min-w-max grid-flow-col auto-cols-[260px] gap-4">
+							{columns.map((col) => (
 								<section
 									key={col.id}
 									aria-label={col.title}
@@ -246,22 +376,22 @@ export default function BoardPage() {
 									<header className="flex items-center justify-between px-1">
 										<h2 className="font-medium text-sm">{col.title}</h2>
 										<span className="text-muted-foreground text-xs tabular-nums">
-											{jobs.length}
+											{col.jobs.length}
 										</span>
 									</header>
-									{jobs.map((job) => (
+									{col.jobs.map((job) => (
 										<JobCard key={job.id} job={job} />
 									))}
-									{jobs.length === 0 ? (
+									{col.jobs.length === 0 ? (
 										<p className="px-1 py-4 text-center text-muted-foreground text-xs">
 											Sin vacantes
 										</p>
 									) : null}
 								</section>
-							);
-						})}
+							))}
+						</div>
 					</div>
-				</div>
+				</>
 			)}
 		</div>
 	);

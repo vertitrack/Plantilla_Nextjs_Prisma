@@ -5,7 +5,12 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
 // la API responde 401. Cada Server Action y Route Handler vuelve a comprobar la
 // sesión (el proxy es la primera barrera, no la única).
 
-const PUBLIC_PATHS = new Set(["/login"]);
+// El manifest y el icono de iOS deben poder leerse sin sesión para instalar la app.
+const PUBLIC_PATHS = new Set([
+	"/login",
+	"/manifest.webmanifest",
+	"/apple-icon",
+]);
 
 export function proxy(request: NextRequest) {
 	const { pathname, search } = request.nextUrl;

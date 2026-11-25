@@ -126,6 +126,35 @@
 	}
 	html {
 		@apply font-sans;
+		-webkit-tap-highlight-color: transparent;
+	}
+	/* En pantallas táctiles, objetivos de toque más cómodos (~40px). */
+	@media (pointer: coarse) {
+		[data-slot="button"],
+		[data-slot="select-trigger"] {
+			min-height: 2.5rem;
+		}
+		[data-slot="button"]:has(> svg:only-child) {
+			min-width: 2.5rem;
+		}
+		[data-slot="input"] {
+			min-height: 2.5rem;
+		}
+		[data-slot="select-item"],
+		[data-slot="tabs-trigger"] {
+			min-height: 2.25rem;
+		}
+	}
+}
+
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility scrollbar-none {
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
 	}
 }
 
